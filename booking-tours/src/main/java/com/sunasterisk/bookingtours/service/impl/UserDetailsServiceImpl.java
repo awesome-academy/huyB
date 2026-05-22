@@ -24,12 +24,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     @NonNull
-    public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+    public UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
 
         if (!Boolean.TRUE.equals(user.getIsActive())) {
-            throw new UsernameNotFoundException("User account is disabled: " + email);
+            throw new UsernameNotFoundException("User account is disabled: " + username);
         }
 
         // Chuyển Role enum → GrantedAuthority (ví dụ: ROLE_ADMIN)
