@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi"
       xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/base :: layout(pageTitle='403 - Access Denied', content=~{::mainContent})}">
+      th:replace="~{layout/base :: layout(pageTitle='403 - Access Denied', content=~{::mainContent},  ~{::extra-head}, ~{::extra-scripts})}">
 <body>
 <th:block th:fragment="mainContent">
     <div class="text-center py-5">
