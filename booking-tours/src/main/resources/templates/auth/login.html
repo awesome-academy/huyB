@@ -16,13 +16,25 @@
                         <i class="bi bi-box-arrow-in-right me-2 text-primary"></i>Login
                     </h4>
 
-                    <!-- Error alert -->
+                    <!-- Login error (wrong credentials) -->
+                    <div th:if="${loginError}" class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Invalid email or password.
+                    </div>
+
+                    <!-- Login error from ?error param (fallback) -->
                     <div th:if="${param.error}" class="alert alert-danger" role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
                         Invalid email or password.
                     </div>
 
-                    <!-- Logout success alert -->
+                    <!-- Register success -->
+                    <div th:if="${param.registered}" class="alert alert-success" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Registration successful! Please log in.
+                    </div>
+
+                    <!-- Logout success -->
                     <div th:if="${param.logout}" class="alert alert-success" role="alert">
                         <i class="bi bi-check-circle-fill me-2"></i>
                         You have been logged out successfully.

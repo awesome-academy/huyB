@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{layout/base :: layout(~{::title/text()}, ~{::main})}">
+
+<title>Admin Dashboard</title>
+
+<main>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-speedometer2 me-2 text-primary"></i>Admin Dashboard
+        </h3>
+        <span class="text-muted">
+            Welcome, <strong sec:authentication="name"></strong>
+        </span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-people-fill fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small">Users</p>
+                        <h4 class="fw-bold mb-0">—</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-success bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-map-fill fs-2 text-success"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small">Tours</p>
+                        <h4 class="fw-bold mb-0">—</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-calendar-check-fill fs-2 text-warning"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small">Bookings Today</p>
+                        <h4 class="fw-bold mb-0">—</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 text-muted text-center small">
+        <i class="bi bi-info-circle me-1"></i>
+        Dashboard statistics will be implemented in Task 10.1
+    </div>
+</main>
+
+</html>
