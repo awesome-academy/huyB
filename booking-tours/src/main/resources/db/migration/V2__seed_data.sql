@@ -1,5 +1,5 @@
 -- ================================================================
--- SUN Booking Tours — Seed Data
+-- SUN Booking Tours — V2: Seed Data
 -- ON CONFLICT DO NOTHING → idempotent (chạy lại không bị duplicate)
 -- ================================================================
 
@@ -21,3 +21,4 @@ VALUES ('Du lịch biển',       'Các tour tham quan, nghỉ dưỡng tại c�
        ('Du lịch mạo hiểm',   'Trải nghiệm các hoạt động ngoài trời kích thích'),
        ('Du lịch nghỉ dưỡng', 'Tận hưởng kỳ nghỉ thư giãn tại resort cao cấp')
 ON CONFLICT (name) DO NOTHING;
+

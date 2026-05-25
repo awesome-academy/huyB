@@ -2,7 +2,7 @@
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
-      th:replace="~{layout/base :: layout(pageTitle='Home', content=~{::mainContent}, ~{::extra-head}, ~{::extra-scripts})}">
+      th:replace="~{layout/base :: layout(pageTitle='Home', content=~{::mainContent}, extraHead=~{}, extraScripts=~{})}">
 <body>
 <th:block th:fragment="mainContent">
 

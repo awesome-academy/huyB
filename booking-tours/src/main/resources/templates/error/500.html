@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/base :: layout(pageTitle='500 - Internal Server Error', content=~{::mainContent}, ~{::extra-head}, ~{::extra-scripts})}">
+      th:replace="~{layout/base :: layout(pageTitle='500 - Internal Server Error', content=~{::mainContent}, extraHead=~{}, extraScripts=~{})}">
 <body>
 <th:block th:fragment="mainContent">
     <div class="text-center py-5">

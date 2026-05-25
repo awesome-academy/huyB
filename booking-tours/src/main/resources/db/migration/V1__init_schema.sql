@@ -1,7 +1,6 @@
 -- ================================================================
--- SUN Booking Tours — Database Schema
+-- SUN Booking Tours — V1: Initial Schema
 -- PostgreSQL · 12 tables
--- Sử dụng IF NOT EXISTS → idempotent (chạy lại không lỗi)
 -- ================================================================
 
 -- ----------------------------------------------------------------
@@ -163,3 +162,4 @@ CREATE TABLE IF NOT EXISTS ratings (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE (tour_id, user_id)   -- mỗi user chỉ rating 1 lần / tour
 );
+
