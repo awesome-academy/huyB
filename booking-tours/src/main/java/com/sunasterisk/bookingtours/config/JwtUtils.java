@@ -25,7 +25,6 @@ import java.util.Date;
  * - Đọc claims (username, role)
  */
 @Component
-@Getter
 public class JwtUtils {
 
     @Value("${app.jwt.secret}")
@@ -34,6 +33,18 @@ public class JwtUtils {
     @Value("${app.jwt.expiration-ms}")
     private long expirationMs;
 
+    /**
+     * -- GETTER --
+     * Trả về tên cookie JWT — được dùng bởi
+     * để tìm đúng cookie trong request.
+     * <p>
+     * Các field nhạy cảm (
+     * ,
+     * ,
+     * )
+     * không có getter công khai để tránh lộ thông tin ra ngoài class.
+     */
+    @Getter
     @Value("${app.jwt.cookie-name}")
     private String cookieName;
 

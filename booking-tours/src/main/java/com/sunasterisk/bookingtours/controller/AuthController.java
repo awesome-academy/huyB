@@ -1,7 +1,9 @@
 package com.sunasterisk.bookingtours.controller;
 
 import com.sunasterisk.bookingtours.config.JwtUtils;
+import com.sunasterisk.bookingtours.dto.LoginRequest;
 import com.sunasterisk.bookingtours.dto.RegisterRequest;
+import com.sunasterisk.bookingtours.exception.DuplicateEmailException;
 import com.sunasterisk.bookingtours.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -51,7 +53,8 @@ public class AuthController {
             return "auth/register";
         }
 
-        // Email unique check
+        // Optimistic pre-read: catches the common (non-concurrent) duplicate-email
+        // case early so we avoid hashing the password unnecessarily.
         if (userService.emailExists(request.getEmail())) {
             bindingResult.rejectValue("email", "error.email", "Email is already registered");
             return "auth/register";
@@ -60,6 +63,12 @@ public class AuthController {
         try {
             userService.register(request);
             return "redirect:/auth/login?registered=true";
+        } catch (DuplicateEmailException e) {
+            // Handles the race-condition window: two concurrent registrations both
+            // pass the pre-read check above, but only one can win the DB unique
+            // constraint.  Surface the same friendly validation error.
+            bindingResult.rejectValue("email", "error.email", "Email is already registered");
+            return "auth/register";
         } catch (Exception e) {
             model.addAttribute("errorMessage", e.getMessage());
             return "auth/register";
@@ -71,7 +80,8 @@ public class AuthController {
     // ----------------------------------------------------------------
 
     @GetMapping("/login")
-    public String showLoginForm() {
+    public String showLoginForm(Model model) {
+        model.addAttribute("loginRequest", new LoginRequest());
         return "auth/login";
     }
 
@@ -81,15 +91,20 @@ public class AuthController {
      */
     @PostMapping("/login")
     public String processLogin(
-            @RequestParam String username,
-            @RequestParam String password,
+            @Valid @ModelAttribute("loginRequest") LoginRequest loginRequest,
+            BindingResult bindingResult,
             HttpServletResponse response,
             Model model) {
 
+        // Bean Validation errors (blank email, invalid email format, short password)
+        if (bindingResult.hasErrors()) {
+            return "auth/login";
+        }
+
         try {
-            // 1. Xác thực credentials
+            // 1. Xác thực credentials (email được dùng làm username)
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password));
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
             // 2. Tạo JWT và đặt vào HttpOnly cookie (SameSite=Strict)
             jwtUtils.addJwtCookie(response, jwtUtils.generateToken(authentication));
