@@ -1,6 +1,5 @@
 package com.sunasterisk.bookingtours.config;
 
-import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +15,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -50,8 +51,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Tắt CSRF vì dùng JWT stateless (không cần CSRF token)
-                .csrf(AbstractHttpConfigurer::disable)
+                // Bật CSRF với CookieCsrfTokenRepository (token lưu trong XSRF-TOKEN cookie).
+                // Thymeleaf th:action tự inject hidden _csrf field → form submit hợp lệ.
+                // Kết hợp HttpOnly + SameSite=Strict + CSRF token = defense-in-depth 3 lớp.
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                )
 
                 // Tắt HTTP Basic Authentication mặc định
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -86,9 +92,9 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter(),
                         UsernamePasswordAuthenticationFilter.class)
 
-                // Logout: xóa JWT cookie → redirect
+                // Logout: chỉ chấp nhận POST (CSRF token bắt buộc) → xóa JWT cookie → redirect
                 .logout(logout -> logout
-                        .logoutUrl("/auth/logout")
+                        .logoutUrl("/auth/logout")           // chỉ POST mới được xử lý
                         .addLogoutHandler((request, response, auth) ->
                                 jwtUtils.clearJwtCookie(response))
                         .logoutSuccessUrl("/auth/login?logout=true")
