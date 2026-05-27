@@ -13,6 +13,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 /**
@@ -34,35 +37,62 @@ public class JwtUtils {
     @Value("${app.jwt.cookie-name}")
     private String cookieName;
 
+    /**
+     * true ở prod (HTTPS), false ở dev (HTTP localhost)
+     */
+    @Value("${app.jwt.cookie-secure:false}")
+    private boolean cookieSecure;
+
+    // RFC 1123 format — dùng cho Expires attribute
+    private static final DateTimeFormatter RFC1123 =
+            DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", java.util.Locale.ENGLISH);
+
     // ----------------------------------------------------------------
     // Cookie helpers — dùng Set-Cookie header để set SameSite
     // ----------------------------------------------------------------
 
     /**
      * Đặt JWT vào HttpOnly cookie với SameSite=Strict.
-     * Dùng response header thay vì Cookie API vì Servlet
-     * không có setSameSite() method.
+     * - Secure: bật khi cookie-secure=true (production HTTPS)
+     * - Max-Age + Expires: đặt cả hai để tương thích mọi browser
      */
     public void addJwtCookie(HttpServletResponse response, String token) {
-        String cookieValue = cookieName + "=" + token
-                + "; HttpOnly"
-                + "; Path=/"
-                + "; Max-Age=" + (expirationMs / 1000)
-                + "; SameSite=Strict";
-        // Thêm "; Secure" khi deploy HTTPS
-        response.addHeader("Set-Cookie", cookieValue);
+        long maxAgeSeconds = expirationMs / 1000;
+        String expires = toHttpDate(System.currentTimeMillis() + expirationMs);
+        response.addHeader("Set-Cookie", buildCookieHeader(token, maxAgeSeconds, expires));
     }
 
     /**
-     * Xóa JWT cookie bằng cách set Max-Age=0.
+     * Xóa JWT cookie bằng cách set Max-Age=0 và Expires trong quá khứ.
+     * Dùng đúng cùng attributes (kể cả Secure, SameSite) với addJwtCookie
+     * để browser nhận diện đúng cookie cần xóa.
      */
     public void clearJwtCookie(HttpServletResponse response) {
-        String cookieValue = cookieName + "="
-                + "; HttpOnly"
-                + "; Path=/"
-                + "; Max-Age=0"
-                + "; SameSite=Strict";
-        response.addHeader("Set-Cookie", cookieValue);
+        response.addHeader("Set-Cookie", buildCookieHeader("", 0, "Thu, 01 Jan 1970 00:00:00 GMT"));
+    }
+
+    // ----------------------------------------------------------------
+    // Private builder — nguồn sự thật duy nhất cho cookie attributes
+    // ----------------------------------------------------------------
+
+    private String buildCookieHeader(String value, long maxAgeSeconds, String expires) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(cookieName).append("=").append(value)
+                .append("; HttpOnly")
+                .append("; Path=/")
+                .append("; Max-Age=").append(maxAgeSeconds)
+                .append("; Expires=").append(expires)
+                .append("; SameSite=Strict");
+        if (cookieSecure) {
+            sb.append("; Secure");
+        }
+        return sb.toString();
+    }
+
+    private String toHttpDate(long epochMillis) {
+        return ZonedDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(epochMillis), ZoneOffset.UTC
+        ).format(RFC1123);
     }
 
     // ----------------------------------------------------------------
