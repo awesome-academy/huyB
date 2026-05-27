@@ -1,0 +1,77 @@
+/* ================================================================
+   SUN Booking Tours — Custom Styles
+   Bootstrap 5 base, chỉ override / bổ sung ở đây
+   ================================================================ */
+
+/* ----- Global ----- */
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* ----- Navbar ----- */
+.navbar-brand {
+    font-size: 1.25rem;
+    letter-spacing: 0.3px;
+}
+
+/* ----- Cards ----- */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ----- Tour thumbnail ----- */
+.tour-thumbnail {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px 8px 0 0;
+}
+
+/* ----- Star rating ----- */
+.star-rating .bi-star-fill  { color: #ffc107; }
+.star-rating .bi-star       { color: #dee2e6; }
+
+/* ----- Badge status ----- */
+.badge-pending    { background-color: #ffc107; color: #212529; }
+.badge-confirmed  { background-color: #198754; }
+.badge-cancelled  { background-color: #dc3545; }
+.badge-completed  { background-color: #0d6efd; }
+
+/* ----- Admin sidebar (Day 10) placeholder ----- */
+.admin-sidebar {
+    min-height: calc(100vh - 56px);
+    background-color: #212529;
+}
+
+.admin-sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* ----- Pagination ----- */
+.page-link { color: #0d6efd; }
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* ----- Form ----- */
+.form-control:focus,
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+}
