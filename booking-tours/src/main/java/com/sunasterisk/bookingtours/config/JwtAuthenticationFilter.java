@@ -39,9 +39,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromCookie(request);
 
-        if (token != null && jwtUtils.validateToken(token)) {
+        // Guard: chỉ xử lý khi SecurityContext chưa có Authentication
+        if (token != null
+                && jwtUtils.validateToken(token)
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
+
             String username = jwtUtils.getUsernameFromToken(token);
             String role = jwtUtils.getRoleFromToken(token);
+
+            // Fallback về ROLE_USER nếu role claim bị thiếu hoặc rỗng
+            if (role == null || role.isBlank()) {
+                role = "ROLE_USER";
+            }
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
