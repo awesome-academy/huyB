@@ -1,5 +1,6 @@
 package com.sunasterisk.bookingtours.service.impl;
 
+import com.sunasterisk.bookingtours.dto.ProfileUpdateRequest;
 import com.sunasterisk.bookingtours.dto.RegisterRequest;
 import com.sunasterisk.bookingtours.entity.Role;
 import com.sunasterisk.bookingtours.entity.User;
@@ -8,7 +9,9 @@ import com.sunasterisk.bookingtours.repository.RoleRepository;
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,5 +63,31 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean emailExists(String email) {
         return userRepository.findByEmail(email).isPresent();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User getByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+        // Khởi tạo lazy proxy Role trong khi session còn mở
+        // để Thymeleaf có thể truy cập user.role.name sau khi transaction đóng
+        Hibernate.initialize(user.getRole());
+        return user;
+    }
+
+    @Override
+    @Transactional
+    public User updateProfile(String email, ProfileUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+
+        user.setFullName(request.getFullName());
+        user.setPhone(request.getPhone() != null && request.getPhone().isBlank()
+                ? null : request.getPhone());
+        user.setAvatarUrl(request.getAvatarUrl() != null && request.getAvatarUrl().isBlank()
+                ? null : request.getAvatarUrl());
+
+        return userRepository.save(user);
     }
 }
