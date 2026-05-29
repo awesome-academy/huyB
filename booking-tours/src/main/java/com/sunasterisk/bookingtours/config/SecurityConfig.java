@@ -14,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -28,6 +29,7 @@ public class SecurityConfig {
     private final CustomAuthenticationSuccessHandler oAuth2SuccessHandler;
     private final JwtUtils jwtUtils;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
     /**
      * JwtAuthenticationFilter không phải @Component để tránh bị Spring Boot
@@ -110,8 +112,14 @@ public class SecurityConfig {
                 // Dùng .oidcUserService() vì Google dùng OIDC (scope=openid,profile,email),
                 // Spring Security sẽ gọi OidcUserService — KHÔNG phải DefaultOAuth2UserService.
                 // .userService() chỉ dành cho standard OAuth2 (không có openid scope).
+                // authorizationEndpoint: thêm prompt=select_account để Google luôn hiện màn hình
+                // chọn tài khoản, tránh tự dùng lại session cũ khi user muốn đổi tài khoản.
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/auth/login")
+                        .authorizationEndpoint(ep -> ep
+                                .authorizationRequestResolver(
+                                        new CustomAuthorizationRequestResolver(clientRegistrationRepository))
+                        )
                         .userInfoEndpoint(userInfo -> userInfo
                                 .oidcUserService(customOAuth2UserService)
                         )
