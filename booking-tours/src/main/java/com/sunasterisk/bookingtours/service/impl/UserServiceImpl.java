@@ -11,6 +11,8 @@ import com.sunasterisk.bookingtours.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -88,6 +90,25 @@ public class UserServiceImpl implements UserService {
         user.setAvatarUrl(request.getAvatarUrl() != null && request.getAvatarUrl().isBlank()
                 ? null : request.getAvatarUrl());
 
+        return userRepository.save(user);
+    }
+
+    // ----------------------------------------------------------------
+    // Admin
+    // ----------------------------------------------------------------
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<User> searchUsers(String keyword, Pageable pageable) {
+        return userRepository.searchUsers(keyword, pageable);
+    }
+
+    @Override
+    @Transactional
+    public User toggleLock(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
+        user.setIsActive(!user.getIsActive());
         return userRepository.save(user);
     }
 }
