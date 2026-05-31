@@ -82,15 +82,17 @@ public class BankAccountServiceImpl implements BankAccountService {
         boolean wasDefault = Boolean.TRUE.equals(account.getIsDefault());
         bankAccountRepository.delete(account);
 
-        // Nếu xóa tài khoản default → tự động set default cho tài khoản được tạo sớm nhất còn lại
+        // Nếu xóa tài khoản default → tự động set default cho tài khoản được tạo gần đây nhất còn lại.
+        // List được sắp xếp createdAt DESC, nên findFirst() trả về tài khoản mới nhất —
+        // phù hợp UX hơn so với việc chọn tài khoản cũ nhất.
         if (wasDefault) {
             bankAccountRepository
                     .findByUserIdOrderByIsDefaultDescCreatedAtDesc(user.getId())
                     .stream()
-                    .reduce((first, second) -> second)   // tài khoản cũ nhất (created_at ASC = cuối list DESC)
-                    .ifPresent(oldest -> {
-                        oldest.setIsDefault(true);
-                        bankAccountRepository.save(oldest);
+                    .findFirst()
+                    .ifPresent(newest -> {
+                        newest.setIsDefault(true);
+                        bankAccountRepository.save(newest);
                     });
         }
     }

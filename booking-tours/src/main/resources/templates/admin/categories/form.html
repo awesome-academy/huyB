@@ -42,7 +42,7 @@
                             <input type="text"
                                    id="name"
                                    th:field="*{name}"
-                                   th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'"
+                                   th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''"
                                    class="form-control"
                                    placeholder="e.g. Beach, Mountain, City Tour…"
                                    maxlength="100"
@@ -59,7 +59,7 @@
                             </label>
                             <textarea id="description"
                                       th:field="*{description}"
-                                      th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"
+                                      th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
                                       class="form-control"
                                       rows="4"
                                       placeholder="Brief description of the category…"

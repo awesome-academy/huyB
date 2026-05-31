@@ -46,6 +46,11 @@ public class AdminUserController {
     /**
      * POST /admin/users/{id}/toggle-lock — Khoá / mở khoá tài khoản.
      * Admin không thể tự khoá chính mình.
+     * <p>
+     * Dùng {@code RedirectAttributes.addAttribute} thay vì nối chuỗi thủ công
+     * để Spring tự động URL-encode các tham số (xử lý đúng ký tự đặc biệt như
+     * {@code &}, {@code =}, {@code #}, {@code %}, khoảng trắng, v.v.).
+     * </p>
      */
     @PostMapping("/{id}/toggle-lock")
     public String toggleLock(
@@ -60,7 +65,7 @@ public class AdminUserController {
         if (me.getId().equals(id)) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "You cannot lock your own account.");
-            return buildRedirect(keyword, page);
+            return buildRedirect(keyword, page, redirectAttributes);
         }
 
         User updated = userService.toggleLock(id);
@@ -69,11 +74,19 @@ public class AdminUserController {
                 : "The account has been locked successfully.";
         redirectAttributes.addFlashAttribute("successMessage", msg);
 
-        return buildRedirect(keyword, page);
+        return buildRedirect(keyword, page, redirectAttributes);
     }
 
-    private String buildRedirect(String keyword, int page) {
-        return "redirect:/admin/users?page=" + page +
-                (keyword.isBlank() ? "" : "&keyword=" + keyword);
+    /**
+     * Xây dựng redirect URL an toàn bằng {@code RedirectAttributes.addAttribute}.
+     * Spring MVC sẽ tự động URL-encode các giá trị tham số, tránh URL bị lỗi
+     * khi keyword chứa ký tự đặc biệt (&, =, #, %, khoảng trắng...).
+     */
+    private String buildRedirect(String keyword, int page, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addAttribute("page", page);
+        if (!keyword.isBlank()) {
+            redirectAttributes.addAttribute("keyword", keyword);
+        }
+        return "redirect:/admin/users";
     }
 }

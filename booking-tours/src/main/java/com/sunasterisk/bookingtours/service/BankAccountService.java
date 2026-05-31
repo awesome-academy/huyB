@@ -41,7 +41,8 @@ public interface BankAccountService {
     /**
      * Xóa tài khoản ngân hàng.
      * Chỉ cho phép xóa tài khoản thuộc về user đang đăng nhập.
-     * Nếu xóa tài khoản default và còn tài khoản khác → tự động set default cho tài khoản cũ nhất.
+     * Nếu xóa tài khoản default và còn tài khoản khác → tự động set default
+     * cho tài khoản được tạo gần đây nhất (createdAt mới nhất) còn lại.
      *
      * @param userEmail email của user đang đăng nhập
      * @param accountId ID tài khoản cần xóa
