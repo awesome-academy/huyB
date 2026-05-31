@@ -3,6 +3,7 @@ package com.sunasterisk.bookingtours.controller.admin;
 import com.sunasterisk.bookingtours.dto.CategoryRequest;
 import com.sunasterisk.bookingtours.entity.Category;
 import com.sunasterisk.bookingtours.service.CategoryService;
+import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,10 +41,13 @@ public class AdminCategoryController {
         Page<Category> categoryPage = categoryService.search(
                 keyword.isBlank() ? null : keyword, pageable);
 
+        int totalPages = categoryPage.getTotalPages();
+
         model.addAttribute("categoryPage", categoryPage);
         model.addAttribute("keyword", keyword);
         model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", categoryPage.getTotalPages());
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("pageNumbers", PaginationUtils.getPageNumbers(page, totalPages));
 
         return "admin/categories/list";
     }

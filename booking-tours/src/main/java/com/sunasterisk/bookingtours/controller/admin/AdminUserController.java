@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.controller.admin;
 
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.service.UserService;
+import com.sunasterisk.bookingtours.util.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,10 +36,13 @@ public class AdminUserController {
         Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("id").ascending());
         Page<User> userPage = userService.searchUsers(keyword.isBlank() ? null : keyword, pageable);
 
+        int totalPages = userPage.getTotalPages();
+
         model.addAttribute("userPage", userPage);
         model.addAttribute("keyword", keyword);
         model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", userPage.getTotalPages());
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("pageNumbers", PaginationUtils.getPageNumbers(page, totalPages));
 
         return "admin/users/list";
     }

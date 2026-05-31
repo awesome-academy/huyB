@@ -106,7 +106,7 @@
                                            class="form-control"
                                            placeholder="e.g. NGUYEN VAN A"
                                            maxlength="255"
-                                           style="text-transform: uppercase;" />
+                                           oninput="this.value=this.value.toUpperCase()" />
                                     <div class="invalid-feedback" th:errors="*{accountHolder}"></div>
                                     <div class="form-text">Name will be saved in uppercase.</div>
                                 </div>
@@ -266,7 +266,7 @@
                                                    th:classappend="${#fields.hasErrors('accountHolder')} ? 'is-invalid' : ''"
                                                    class="form-control"
                                                    maxlength="255"
-                                                   style="text-transform: uppercase;" />
+                                                   oninput="this.value=this.value.toUpperCase()" />
                                             <div class="invalid-feedback" th:errors="*{accountHolder}"></div>
                                         </div>
                                         <div class="col-md-6 d-flex align-items-center">

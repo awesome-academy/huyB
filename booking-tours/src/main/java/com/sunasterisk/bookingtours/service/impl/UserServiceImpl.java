@@ -5,6 +5,7 @@ import com.sunasterisk.bookingtours.dto.RegisterRequest;
 import com.sunasterisk.bookingtours.entity.Role;
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.exception.DuplicateEmailException;
+import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.repository.RoleRepository;
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.UserService;
@@ -107,7 +108,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User toggleLock(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
         user.setIsActive(!user.getIsActive());
         return userRepository.save(user);
     }

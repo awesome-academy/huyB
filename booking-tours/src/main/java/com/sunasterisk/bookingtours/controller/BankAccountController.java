@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.controller;
 
 import com.sunasterisk.bookingtours.dto.BankAccountRequest;
 import com.sunasterisk.bookingtours.entity.UserBankAccount;
+import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.service.BankAccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -54,12 +55,8 @@ public class BankAccountController {
             return "profile/bank-accounts";
         }
 
-        try {
-            bankAccountService.addAccount(authentication.getName(), form);
-            redirectAttributes.addFlashAttribute("successMessage", "Bank account added successfully!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to add bank account: " + e.getMessage());
-        }
+        bankAccountService.addAccount(authentication.getName(), form);
+        redirectAttributes.addFlashAttribute("successMessage", "Bank account added successfully!");
 
         return "redirect:/profile/bank-accounts";
     }
@@ -95,7 +92,7 @@ public class BankAccountController {
             model.addAttribute("editId", id);
             return "profile/bank-accounts";
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/profile/bank-accounts";
         }
@@ -127,8 +124,8 @@ public class BankAccountController {
             redirectAttributes.addFlashAttribute("successMessage", "Bank account updated successfully!");
         } catch (AccessDeniedException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Access denied.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to update: " + e.getMessage());
+        } catch (ResourceNotFoundException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Bank account not found.");
         }
 
         return "redirect:/profile/bank-accounts";
@@ -148,8 +145,8 @@ public class BankAccountController {
             redirectAttributes.addFlashAttribute("successMessage", "Bank account deleted successfully!");
         } catch (AccessDeniedException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Access denied.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to delete: " + e.getMessage());
+        } catch (ResourceNotFoundException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Bank account not found.");
         }
 
         return "redirect:/profile/bank-accounts";
@@ -169,8 +166,8 @@ public class BankAccountController {
             redirectAttributes.addFlashAttribute("successMessage", "Default bank account updated!");
         } catch (AccessDeniedException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Access denied.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to set default: " + e.getMessage());
+        } catch (ResourceNotFoundException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Bank account not found.");
         }
 
         return "redirect:/profile/bank-accounts";

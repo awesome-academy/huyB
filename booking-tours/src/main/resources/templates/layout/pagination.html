@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Reusable windowed-pagination fragment.
+
+  Parameters:
+    pageNumbers  – List<Integer> from PaginationUtils (-1 = ellipsis sentinel)
+    currentPage  – 0-based index of the active page
+    totalPages   – total number of pages
+    baseUrl      – URL path used to build page links, e.g. '/admin/categories'
+    keyword      – current search keyword (may be empty string)
+-->
+<th:block th:fragment="paginate(pageNumbers, currentPage, totalPages, baseUrl, keyword)">
+    <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center"
+         th:if="${totalPages > 1}">
+        <span class="text-muted small">
+            Page <strong th:text="${currentPage + 1}">1</strong>
+            / <strong th:text="${totalPages}">1</strong>
+        </span>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0">
+
+                <!-- Previous -->
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{${baseUrl}(page=${currentPage - 1}, keyword=${keyword})}"
+                       aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Windowed page numbers -->
+                <th:block th:each="p : ${pageNumbers}">
+
+                    <!-- Ellipsis -->
+                    <li th:if="${p == -1}" class="page-item disabled">
+                        <span class="page-link px-2">…</span>
+                    </li>
+
+                    <!-- Numbered page -->
+                    <li th:if="${p != -1}"
+                        class="page-item"
+                        th:classappend="${p == currentPage} ? 'active'">
+                        <a class="page-link"
+                           th:href="@{${baseUrl}(page=${p}, keyword=${keyword})}"
+                           th:text="${p + 1}">1</a>
+                    </li>
+
+                </th:block>
+
+                <!-- Next -->
+                <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{${baseUrl}(page=${currentPage + 1}, keyword=${keyword})}"
+                       aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+</th:block>
+
+</body>
+</html>
