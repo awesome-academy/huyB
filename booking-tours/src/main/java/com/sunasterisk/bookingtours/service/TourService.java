@@ -20,6 +20,17 @@ public interface TourService {
     Page<Tour> search(String keyword, Pageable pageable);
 
     /**
+     * Lấy danh sách tour công khai (chỉ ACTIVE) cho trang Guest/User.
+     * Hỗ trợ tìm kiếm theo từ khoá và lọc theo danh mục.
+     *
+     * @param keyword    từ khoá tìm kiếm (null / rỗng → bỏ qua)
+     * @param categoryId id danh mục (null → tất cả danh mục)
+     * @param pageable   thông tin phân trang
+     * @return {@code Page<Tour>} ACTIVE với category đã được fetch
+     */
+    Page<Tour> searchPublic(String keyword, Long categoryId, Pageable pageable);
+
+    /**
      * Lấy thông tin một tour theo id.
      *
      * @param id id của tour

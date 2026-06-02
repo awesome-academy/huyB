@@ -32,9 +32,18 @@ public class TourServiceImpl implements TourService {
     @Override
     @Transactional(readOnly = true)
     public Page<Tour> search(String keyword, Pageable pageable) {
-        // Chuẩn hóa keyword: trim và đổi blank thành null để query trả về tất cả
         String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         return tourRepository.searchByKeyword(kw, pageable);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Tour> searchPublic(String keyword, Long categoryId, Pageable pageable) {
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        return tourRepository.searchPublic(kw, categoryId, TourStatus.ACTIVE, pageable);
     }
 
     /**

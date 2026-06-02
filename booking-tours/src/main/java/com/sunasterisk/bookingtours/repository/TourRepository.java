@@ -1,6 +1,7 @@
 package com.sunasterisk.bookingtours.repository;
 
 import com.sunasterisk.bookingtours.entity.Tour;
+import com.sunasterisk.bookingtours.entity.TourStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -42,4 +43,37 @@ public interface TourRepository extends JpaRepository<Tour, Long> {
            "       OR LOWER(t.destination) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
            "ORDER BY t.createdAt DESC")
     Page<Tour> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * Tìm kiếm tour công khai (chỉ ACTIVE) theo từ khoá và/hoặc category.
+     * Dùng cho trang danh sách tour của Guest / User.
+     *
+     * <p>Dùng {@code @Param("status")} thay vì inline enum trong JPQL để tránh
+     * lỗi parse với một số phiên bản Hibernate.
+     * countQuery tường minh (không join) để Spring Data JPA tính đúng totalElements.
+     *
+     * @param keyword    từ khoá tìm kiếm (null → bỏ qua)
+     * @param categoryId id danh mục (null → tất cả danh mục)
+     * @param status     trạng thái tour cần lọc (truyền {@link TourStatus#ACTIVE})
+     * @param pageable   thông tin phân trang
+     * @return {@code Page<Tour>} ACTIVE với category đã được fetch
+     */
+    @EntityGraph(attributePaths = "category")
+    @Query(value = "SELECT t FROM Tour t " +
+                   "WHERE t.status = :status " +
+                   "AND (:keyword IS NULL OR :keyword = '' " +
+                   "       OR LOWER(t.title)       LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "       OR LOWER(t.destination) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                   "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+                   "ORDER BY t.createdAt DESC",
+           countQuery = "SELECT COUNT(t) FROM Tour t " +
+                        "WHERE t.status = :status " +
+                        "AND (:keyword IS NULL OR :keyword = '' " +
+                        "       OR LOWER(t.title)       LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "       OR LOWER(t.destination) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                        "AND (:categoryId IS NULL OR t.category.id = :categoryId)")
+    Page<Tour> searchPublic(@Param("keyword") String keyword,
+                            @Param("categoryId") Long categoryId,
+                            @Param("status") TourStatus status,
+                            Pageable pageable);
 }
