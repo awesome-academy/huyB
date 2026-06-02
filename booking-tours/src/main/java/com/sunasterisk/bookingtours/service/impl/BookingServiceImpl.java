@@ -11,6 +11,9 @@ import com.sunasterisk.bookingtours.repository.TourRepository;
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.BookingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,5 +108,53 @@ public class BookingServiceImpl implements BookingService {
             }
         }
         throw new IllegalStateException("Unable to generate unique booking code after " + MAX_RETRY + " attempts");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Booking> getBookingHistory(String email, BookingStatus status, Pageable pageable) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        return bookingRepository.findByUserIdAndStatus(user.getId(), status, pageable);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Booking getBookingDetail(String email, Long bookingId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        Booking booking = bookingRepository.findByIdWithTourAndUser(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You do not have permission to view this booking.");
+        }
+        return booking;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void cancelBooking(String email, Long bookingId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You do not have permission to cancel this booking.");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only PENDING bookings can be cancelled. Current status: " + booking.getStatus());
+        }
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
     }
 }

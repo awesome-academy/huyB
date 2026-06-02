@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.controller;
 
 import com.sunasterisk.bookingtours.dto.BookingRequest;
 import com.sunasterisk.bookingtours.entity.Booking;
+import com.sunasterisk.bookingtours.entity.BookingStatus;
 import com.sunasterisk.bookingtours.entity.Tour;
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
@@ -9,8 +10,13 @@ import com.sunasterisk.bookingtours.repository.BookingRepository;
 import com.sunasterisk.bookingtours.service.BookingService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.service.UserService;
+import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,9 +28,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * Controller xử lý luồng đặt tour của User.
  *
  * <ul>
- *   <li>GET  /bookings/new?tourId=X         — Form đặt tour</li>
+ *   <li>GET  /bookings                       — Lịch sử booking (danh sách + filter status)</li>
+ *   <li>GET  /bookings/{id}                  — Chi tiết booking</li>
+ *   <li>POST /bookings/{id}/cancel           — Hủy booking PENDING</li>
+ *   <li>GET  /bookings/new?tourId=X          — Form đặt tour</li>
  *   <li>POST /bookings                       — Submit form, tạo Booking PENDING</li>
- *   <li>GET  /bookings/confirmation/{code}  — Trang xác nhận sau khi đặt thành công</li>
+ *   <li>GET  /bookings/confirmation/{code}   — Trang xác nhận sau khi đặt thành công</li>
  * </ul>
  * <p>
  * Yêu cầu xác thực (anyRequest().authenticated() trong SecurityConfig).
@@ -34,22 +43,105 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequiredArgsConstructor
 public class BookingController {
 
+    private static final int PAGE_SIZE = 8;
+
     private final BookingService bookingService;
     private final TourService tourService;
     private final UserService userService;
     private final BookingRepository bookingRepository;
 
     // ----------------------------------------------------------------
-    // GET /bookings  — placeholder (task 6.3 will implement history)
+    // GET /bookings  — Lịch sử booking (task 6.3)
     // ----------------------------------------------------------------
 
     /**
-     * GET /bookings — Lịch sử booking của user (sẽ triển khai đầy đủ ở task 6.3).
-     * Tạm thời redirect sang trang tours.
+     * GET /bookings — Danh sách lịch sử booking của user, có lọc theo status.
+     *
+     * @param status trạng thái cần lọc (rỗng = tất cả)
+     * @param page   trang hiện tại (0-based), mặc định 0
+     * @param auth   thông tin user đang đăng nhập
+     * @param model  Spring MVC model
+     * @return view {@code bookings/list}
      */
     @GetMapping
-    public String bookingHistory() {
-        return "redirect:/tours";
+    public String bookingHistory(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            Authentication auth,
+            Model model) {
+
+        BookingStatus bookingStatus = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                bookingStatus = BookingStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // invalid status → show all
+            }
+        }
+
+        PageRequest pageable = PageRequest.of(page, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Booking> bookingPage = bookingService.getBookingHistory(auth.getName(), bookingStatus, pageable);
+
+        model.addAttribute("bookingPage", bookingPage);
+        model.addAttribute("currentPage", bookingPage.getNumber());
+        model.addAttribute("totalPages", bookingPage.getTotalPages());
+        model.addAttribute("pageNumbers", PaginationUtils.getPageNumbers(bookingPage.getNumber(), bookingPage.getTotalPages()));
+        model.addAttribute("selectedStatus", status != null ? status.toUpperCase() : "");
+        model.addAttribute("statuses", BookingStatus.values());
+        return "bookings/list";
+    }
+
+    // ----------------------------------------------------------------
+    // GET /bookings/{id}  — Chi tiết booking (task 6.3)
+    // ----------------------------------------------------------------
+
+    /**
+     * GET /bookings/{id} — Chi tiết một booking.
+     * Chỉ user sở hữu mới được xem.
+     *
+     * @param id    id của booking
+     * @param auth  thông tin user đang đăng nhập
+     * @param model Spring MVC model
+     * @return view {@code bookings/detail}
+     */
+    @GetMapping("/{id}")
+    public String bookingDetail(
+            @PathVariable Long id,
+            Authentication auth,
+            Model model) {
+
+        Booking booking = bookingService.getBookingDetail(auth.getName(), id);
+        model.addAttribute("booking", booking);
+        return "bookings/detail";
+    }
+
+    // ----------------------------------------------------------------
+    // POST /bookings/{id}/cancel  — Hủy booking PENDING (task 6.3)
+    // ----------------------------------------------------------------
+
+    /**
+     * POST /bookings/{id}/cancel — Hủy booking nếu đang ở trạng thái PENDING.
+     *
+     * @param id            id của booking cần hủy
+     * @param auth          thông tin user đang đăng nhập
+     * @param redirectAttrs flash attributes
+     * @return redirect về trang chi tiết booking
+     */
+    @PostMapping("/{id}/cancel")
+    public String cancelBooking(
+            @PathVariable Long id,
+            Authentication auth,
+            RedirectAttributes redirectAttrs) {
+
+        try {
+            bookingService.cancelBooking(auth.getName(), id);
+            redirectAttrs.addFlashAttribute("successMessage", "Your booking has been cancelled successfully.");
+        } catch (IllegalStateException e) {
+            redirectAttrs.addFlashAttribute("errorMessage", e.getMessage());
+        } catch (AccessDeniedException e) {
+            redirectAttrs.addFlashAttribute("errorMessage", "You do not have permission to cancel this booking.");
+        }
+        return "redirect:/bookings/" + id;
     }
 
     // ----------------------------------------------------------------

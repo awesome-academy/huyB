@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          'My Bookings',
+          ~{::section#content},
+          ~{},
+          ~{})}">
+<body>
+<section id="content">
+
+    <!-- ============================================================ -->
+    <!-- Page Header                                                   -->
+    <!-- ============================================================ -->
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-calendar-check fs-2 text-primary me-3"></i>
+        <div>
+            <h2 class="mb-0 fw-bold">My Bookings</h2>
+            <p class="text-muted mb-0 small">Track and manage your tour bookings</p>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Status Filter Tabs                                            -->
+    <!-- ============================================================ -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2 px-3">
+            <ul class="nav nav-pills gap-1 flex-wrap">
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${selectedStatus == '' or selectedStatus == null} ? 'active' : ''"
+                       th:href="@{/bookings}">
+                        <i class="bi bi-grid me-1"></i>All
+                    </a>
+                </li>
+                <li class="nav-item" th:each="s : ${statuses}">
+                    <a class="nav-link"
+                       th:classappend="${selectedStatus == s.name()} ? 'active' : ''"
+                       th:href="@{/bookings(status=${s.name()})}">
+                        <!-- Badge color by status -->
+                        <span th:if="${s.name() == 'PENDING'}"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                        <span th:if="${s.name() == 'CONFIRMED'}"><i class="bi bi-check-circle me-1"></i>Confirmed</span>
+                        <span th:if="${s.name() == 'CANCELLED'}"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+                        <span th:if="${s.name() == 'COMPLETED'}"><i class="bi bi-flag-fill me-1"></i>Completed</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Booking List                                                  -->
+    <!-- ============================================================ -->
+    <div th:if="${bookingPage.isEmpty()}" class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted"></i>
+        <p class="text-muted mt-3 fs-5">No bookings found.</p>
+        <a th:href="@{/tours}" class="btn btn-primary mt-2">
+            <i class="bi bi-search me-2"></i>Browse Tours
+        </a>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 g-4" th:unless="${bookingPage.isEmpty()}">
+        <div class="col" th:each="booking : ${bookingPage.content}">
+            <div class="card h-100 border-0 shadow-sm">
+
+                <!-- Tour thumbnail -->
+                <div class="row g-0 h-100">
+                    <div class="col-sm-4 d-none d-sm-flex align-items-center justify-content-center bg-light rounded-start overflow-hidden"
+                         style="min-height: 140px;">
+                        <div class="position-relative w-100 h-100 d-flex align-items-center justify-content-center">
+                            <!-- Fallback icon — visible when no URL or when image fails to load -->
+                            <i class="bi bi-image text-secondary fs-1"
+                               th:classappend="${booking.tour.thumbnailUrl != null and !#strings.isEmpty(booking.tour.thumbnailUrl)} ? 'd-none img-error-fallback' : ''"></i>
+                            <img th:if="${booking.tour.thumbnailUrl != null and !#strings.isEmpty(booking.tour.thumbnailUrl)}"
+                                 th:src="${booking.tour.thumbnailUrl}"
+                                 th:alt="${booking.tour.title}"
+                                 class="position-absolute top-0 start-0 w-100 h-100"
+                                 style="object-fit: cover;"
+                                 data-img-error="fallback"/>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-8 d-flex flex-column">
+                        <div class="card-body pb-2 flex-grow-1">
+
+                            <!-- Status badge -->
+                            <div class="mb-2">
+                                <span class="badge rounded-pill"
+                                      th:classappend="${booking.status.name() == 'PENDING'} ? 'bg-warning text-dark' :
+                                                      (${booking.status.name() == 'CONFIRMED'} ? 'bg-success' :
+                                                      (${booking.status.name() == 'CANCELLED'} ? 'bg-secondary' : 'bg-primary'))"
+                                      th:text="${booking.status.name()}">PENDING</span>
+                            </div>
+
+                            <!-- Booking code -->
+                            <p class="mb-1 font-monospace small text-muted">
+                                <i class="bi bi-hash me-1"></i>
+                                <span th:text="${booking.bookingCode}">BK-00000000-0000</span>
+                            </p>
+
+                            <!-- Tour title -->
+                            <h6 class="card-title fw-bold mb-1" th:text="${booking.tour.title}">Tour Title</h6>
+
+                            <!-- Destination -->
+                            <p class="mb-1 small text-muted">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                <span th:text="${booking.tour.destination}">Destination</span>
+                            </p>
+
+                            <!-- Participants & Price -->
+                            <div class="d-flex gap-3 small text-muted mb-1">
+                                <span>
+                                    <i class="bi bi-people me-1"></i>
+                                    <span th:text="${booking.participants}">1</span> person(s)
+                                </span>
+                                <span class="fw-semibold text-primary">
+                                    <span th:text="${#numbers.formatDecimal(booking.totalPrice, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
+                                </span>
+                            </div>
+
+                            <!-- Booked At -->
+                            <p class="mb-0 small text-muted">
+                                <i class="bi bi-clock-history me-1"></i>
+                                <span th:text="${#temporals.format(booking.createdAt, 'dd/MM/yyyy HH:mm')}">—</span>
+                            </p>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="card-footer bg-transparent border-top-0 d-flex gap-2 pt-0 pb-3 px-3">
+                            <a th:href="@{/bookings/{id}(id=${booking.id})}"
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye me-1"></i>View Detail
+                            </a>
+                            <form th:if="${booking.status.name() == 'PENDING'}"
+                                  th:action="@{/bookings/{id}/cancel(id=${booking.id})}"
+                                  method="post"
+                                  onsubmit="return confirm('Are you sure you want to cancel this booking?')">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-x-circle me-1"></i>Cancel
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Pagination                                                    -->
+    <!-- ============================================================ -->
+    <div class="d-flex justify-content-center mt-4" th:if="${totalPages > 1}">
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+                <!-- Previous -->
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/bookings(page=${currentPage - 1}, status=${selectedStatus})}"
+                       aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                <!-- Page numbers -->
+                <th:block th:each="p : ${pageNumbers}">
+                    <li th:if="${p == -1}" class="page-item disabled">
+                        <span class="page-link px-2">…</span>
+                    </li>
+                    <li th:if="${p != -1}" class="page-item"
+                        th:classappend="${p == currentPage} ? 'active'">
+                        <a class="page-link"
+                           th:href="@{/bookings(page=${p}, status=${selectedStatus})}"
+                           th:text="${p + 1}">1</a>
+                    </li>
+                </th:block>
+                <!-- Next -->
+                <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/bookings(page=${currentPage + 1}, status=${selectedStatus})}"
+                       aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+</section>
+</body>
+</html>

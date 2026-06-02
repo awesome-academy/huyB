@@ -24,6 +24,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsByBookingCode(String bookingCode);
 
     /**
+     * Tìm booking theo id với tour và user đã được fetch (dùng cho trang chi tiết booking).
+     *
+     * @param id id của booking
+     * @return {@code Optional<Booking>} với tour và user đã được JOIN FETCH
+     */
+    @Query("SELECT b FROM Booking b JOIN FETCH b.tour JOIN FETCH b.user WHERE b.id = :id")
+    Optional<Booking> findByIdWithTourAndUser(@Param("id") Long id);
+
+    /**
      * Tìm booking theo mã booking và user_id — dùng để xem chi tiết booking của chính user đó.
      *
      * @param bookingCode mã booking
