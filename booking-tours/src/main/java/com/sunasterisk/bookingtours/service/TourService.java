@@ -40,6 +40,16 @@ public interface TourService {
     Tour getById(Long id);
 
     /**
+     * Lấy chi tiết tour công khai (chỉ ACTIVE) cho Guest/User.
+     * Trả về 404 nếu không tồn tại hoặc đang INACTIVE.
+     *
+     * @param id id của tour
+     * @return tour ACTIVE với category đã được fetch
+     * @throws com.sunasterisk.bookingtours.exception.ResourceNotFoundException nếu không tìm thấy / INACTIVE
+     */
+    Tour getPublicById(Long id);
+
+    /**
      * Tạo mới tour. Kiểm tra tiêu đề trùng lặp (case-insensitive).
      *
      * @param tourRequest DTO chứa thông tin tour

@@ -58,6 +58,16 @@ public class TourServiceImpl implements TourService {
 
     /**
      * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Tour getPublicById(Long id) {
+        return tourRepository.findByIdAndStatus(id, TourStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Tour", id));
+    }
+
+    /**
+     * {@inheritDoc}
      * Kiểm tra title trùng (case-insensitive) trước khi lưu.
      */
     @Override

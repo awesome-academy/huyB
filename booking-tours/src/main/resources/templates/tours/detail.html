@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle=${tour.title}, content=~{::pageContent}, extraHead=~{}, extraScripts=~{})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- ============================================================ -->
+    <!-- Breadcrumb                                                    -->
+    <!-- ============================================================ -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/}" class="text-decoration-none">
+                    <i class="bi bi-house me-1"></i>Home
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/tours}" class="text-decoration-none">Tours</a>
+            </li>
+            <li class="breadcrumb-item active" th:text="${tour.title}">Tour Title</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+
+        <!-- ============================================================ -->
+        <!-- LEFT: Thumbnail + quick info card                            -->
+        <!-- ============================================================ -->
+        <div class="col-lg-5">
+
+            <!-- Thumbnail -->
+            <div class="card border-0 shadow-sm overflow-hidden mb-4">
+                <img th:if="${tour.thumbnailUrl != null}"
+                     th:src="${tour.thumbnailUrl}"
+                     class="img-fluid w-100"
+                     alt="Tour thumbnail"
+                     style="max-height:380px;object-fit:cover;"/>
+                <div th:unless="${tour.thumbnailUrl != null}"
+                     class="bg-light d-flex align-items-center justify-content-center"
+                     style="height:380px;">
+                    <i class="bi bi-image text-muted" style="font-size:5rem;"></i>
+                </div>
+            </div>
+
+            <!-- Quick info card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    <i class="bi bi-info-circle me-2"></i>Tour Overview
+                </div>
+                <ul class="list-group list-group-flush">
+
+                    <!-- Category -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        th:if="${tour.category != null}">
+                        <span class="text-muted small"><i class="bi bi-tag me-2"></i>Category</span>
+                        <span class="badge bg-primary rounded-pill" th:text="${tour.category.name}">Category</span>
+                    </li>
+
+                    <!-- Duration -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="bi bi-clock me-2"></i>Duration</span>
+                        <span class="fw-semibold">
+                            <span th:text="${tour.durationDays}">1</span> day(s)
+                        </span>
+                    </li>
+
+                    <!-- Max participants -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="bi bi-people me-2"></i>Max Participants</span>
+                        <span class="fw-semibold" th:text="${tour.maxParticipants}">20</span>
+                    </li>
+
+                    <!-- Departure location -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="bi bi-geo me-2"></i>Departure From</span>
+                        <span class="fw-semibold" th:text="${tour.departureLocation}">Location</span>
+                    </li>
+
+                    <!-- Destination -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Destination</span>
+                        <span class="fw-semibold" th:text="${tour.destination}">Destination</span>
+                    </li>
+
+                    <!-- Departure date -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        th:if="${tour.departureDate != null}">
+                        <span class="text-muted small"><i class="bi bi-calendar3 me-2"></i>Departure Date</span>
+                        <span class="fw-semibold"
+                              th:text="${#temporals.format(tour.departureDate, 'dd/MM/yyyy')}">01/01/2025</span>
+                    </li>
+
+                    <!-- Rating -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        th:with="score=${tour.avgRating != null ? tour.avgRating.doubleValue() : 0.0}">
+                        <span class="text-muted small"><i class="bi bi-star-fill text-warning me-2"></i>Rating</span>
+                        <span>
+                            <span class="me-1">
+                                <i th:class="${score >= 1 ? 'bi bi-star-fill text-warning' : (score >= 0.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')}"></i>
+                                <i th:class="${score >= 2 ? 'bi bi-star-fill text-warning' : (score >= 1.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')}"></i>
+                                <i th:class="${score >= 3 ? 'bi bi-star-fill text-warning' : (score >= 2.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')}"></i>
+                                <i th:class="${score >= 4 ? 'bi bi-star-fill text-warning' : (score >= 3.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')}"></i>
+                                <i th:class="${score >= 5 ? 'bi bi-star-fill text-warning' : (score >= 4.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')}"></i>
+                            </span>
+                            <span class="fw-semibold small"
+                                  th:text="${score > 0 ? #numbers.formatDecimal(score, 1, 1) : 'No rating'}">0.0</span>
+                        </span>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- RIGHT: Title, description, price, CTA                        -->
+        <!-- ============================================================ -->
+        <div class="col-lg-7">
+
+            <!-- Title + status badge -->
+            <div class="d-flex align-items-start justify-content-between mb-2">
+                <h2 class="fw-bold lh-sm mb-0" th:text="${tour.title}">Tour Title</h2>
+            </div>
+
+            <!-- Destination sub-text -->
+            <p class="text-muted mb-3">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                <span th:text="${tour.departureLocation}">From</span>
+                <i class="bi bi-arrow-right mx-2"></i>
+                <span th:text="${tour.destination}">To</span>
+            </p>
+
+            <!-- Rating summary bar -->
+            <div class="d-flex align-items-center gap-3 mb-4"
+                 th:with="score=${tour.avgRating != null ? tour.avgRating.doubleValue() : 0.0}">
+                <div>
+                    <i th:class="${score >= 1 ? 'bi bi-star-fill text-warning' : (score >= 0.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')} + ' fs-5'"></i>
+                    <i th:class="${score >= 2 ? 'bi bi-star-fill text-warning' : (score >= 1.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')} + ' fs-5'"></i>
+                    <i th:class="${score >= 3 ? 'bi bi-star-fill text-warning' : (score >= 2.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')} + ' fs-5'"></i>
+                    <i th:class="${score >= 4 ? 'bi bi-star-fill text-warning' : (score >= 3.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')} + ' fs-5'"></i>
+                    <i th:class="${score >= 5 ? 'bi bi-star-fill text-warning' : (score >= 4.5 ? 'bi bi-star-half text-warning' : 'bi bi-star text-warning')} + ' fs-5'"></i>
+                </div>
+                <span class="fw-bold fs-5"
+                      th:text="${score > 0 ? #numbers.formatDecimal(score, 1, 1) : 'No rating yet'}">0.0</span>
+                <span class="text-muted small">/ 5.0</span>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+                <h5 class="fw-semibold mb-2">
+                    <i class="bi bi-file-text me-2 text-primary"></i>Description
+                </h5>
+                <div class="text-secondary lh-lg" style="white-space: pre-wrap;"
+                     th:text="${tour.description}">Tour description goes here...</div>
+            </div>
+
+            <hr/>
+
+            <!-- Price + Book Now -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-4">
+                <div>
+                    <span class="text-muted small d-block mb-1">Price per person</span>
+                    <span class="fw-bold text-primary" style="font-size:2rem;">
+                        <span th:text="${#numbers.formatDecimal(tour.price, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
+                    </span>
+                </div>
+
+                <!-- Authenticated users: Book Now -->
+                <div th:if="${#authorization.expression('isAuthenticated()')}">
+                    <a th:href="@{/bookings/new(tourId=${tour.id})}"
+                       class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-calendar-check me-2"></i>Book Now
+                    </a>
+                </div>
+
+                <!-- Guest: prompt login -->
+                <div th:if="${#authorization.expression('isAnonymous()')}">
+                    <a th:href="@{/auth/login}" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login to Book
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tour highlights (meta pills) -->
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <span class="badge rounded-pill bg-light text-dark border">
+                    <i class="bi bi-clock text-primary me-1"></i>
+                    <span th:text="${tour.durationDays}">1</span> day(s)
+                </span>
+                <span class="badge rounded-pill bg-light text-dark border">
+                    <i class="bi bi-people text-primary me-1"></i>
+                    Max <span th:text="${tour.maxParticipants}">20</span> people
+                </span>
+                <span class="badge rounded-pill bg-light text-dark border"
+                      th:if="${tour.departureDate != null}">
+                    <i class="bi bi-calendar3 text-primary me-1"></i>
+                    <span th:text="${#temporals.format(tour.departureDate, 'dd/MM/yyyy')}">01/01/2025</span>
+                </span>
+                <span class="badge rounded-pill bg-light text-dark border"
+                      th:if="${tour.category != null}">
+                    <i class="bi bi-tag text-primary me-1"></i>
+                    <span th:text="${tour.category.name}">Category</span>
+                </span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Back to Tours / Search again                                  -->
+    <!-- ============================================================ -->
+    <div class="mt-5 pt-4 border-top">
+        <div class="row align-items-center">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <a th:href="@{/tours}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Tours
+                </a>
+            </div>
+            <!-- Quick search bar -->
+            <div class="col-md-6">
+                <form th:action="@{/tours}" method="get" class="d-flex gap-2">
+                    <input type="text"
+                           name="keyword"
+                           class="form-control"
+                           placeholder="Search another tour by name or destination…"/>
+                    <button type="submit" class="btn btn-primary text-nowrap">
+                        <i class="bi bi-search me-1"></i>Search
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</th:block>
+</body>
+</html>

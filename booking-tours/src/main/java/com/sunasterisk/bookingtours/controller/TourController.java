@@ -11,12 +11,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * Controller công khai cho trang danh sách tour.
- * Cho phép cả Guest và User xem danh sách tour, lọc theo category, phân trang.
+ * Controller công khai cho trang danh sách và chi tiết tour.
+ * Cho phép cả Guest và User xem danh sách, tìm kiếm và chi tiết tour.
  */
 @Controller
 @RequestMapping("/tours")
@@ -29,7 +30,7 @@ public class TourController {
     private final CategoryService categoryService;
 
     /**
-     * GET /tours — Danh sách tour công khai: phân trang, lọc category, hiển thị avg_rating.
+     * GET /tours — Danh sách tour công khai: phân trang, lọc category, tìm kiếm theo tên/địa điểm.
      *
      * @param keyword    từ khoá tìm kiếm (tiêu đề hoặc điểm đến)
      * @param categoryId id danh mục muốn lọc (null = tất cả)
@@ -61,5 +62,20 @@ public class TourController {
         model.addAttribute("categories", categoryService.getAll());
 
         return "tours/list";
+    }
+
+    /**
+     * GET /tours/{id} — Chi tiết tour công khai (chỉ ACTIVE).
+     * Hiển thị đầy đủ thông tin: mô tả, giá, ngày khởi hành, rating, category, v.v.
+     *
+     * @param id    id của tour
+     * @param model Spring MVC model
+     * @return view name
+     */
+    @GetMapping("/{id}")
+    public String tourDetail(@PathVariable Long id, Model model) {
+        Tour tour = tourService.getPublicById(id);
+        model.addAttribute("tour", tour);
+        return "tours/detail";
     }
 }

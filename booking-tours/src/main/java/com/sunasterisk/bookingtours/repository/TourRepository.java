@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 /**
  * Repository cho entity {@link Tour}.
  */
@@ -17,6 +19,16 @@ public interface TourRepository extends JpaRepository<Tour, Long> {
     boolean existsByTitleIgnoreCase(String title);
 
     boolean existsByTitleIgnoreCaseAndIdNot(String title, Long id);
+
+    /**
+     * Tìm tour theo id và status — dùng để lấy chi tiết tour công khai (chỉ ACTIVE).
+     *
+     * @param id     id của tour
+     * @param status trạng thái tour (truyền {@link TourStatus#ACTIVE})
+     * @return {@code Optional<Tour>} với category đã được fetch
+     */
+    @EntityGraph(attributePaths = "category")
+    Optional<Tour> findByIdAndStatus(Long id, TourStatus status);
 
     /**
      * Tìm kiếm tour theo từ khoá (title hoặc destination), kết quả sắp xếp theo ngày tạo mới nhất.
