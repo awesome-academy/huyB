@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = "user")
 @Entity
 @Table(name = "user_bank_accounts")
 @EntityListeners(AuditingEntityListener.class)
