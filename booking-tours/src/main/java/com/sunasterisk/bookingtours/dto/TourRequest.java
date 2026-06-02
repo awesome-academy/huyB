@@ -4,6 +4,7 @@ import com.sunasterisk.bookingtours.entity.TourStatus;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -54,6 +55,7 @@ public class TourRequest {
     private String destination;
 
     @NotNull(message = "Departure date is required")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate departureDate;
 
     /**

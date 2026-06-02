@@ -100,7 +100,7 @@ public class Tour extends BaseEntity {
      * Điểm đánh giá trung bình của tour (1.0 – 5.0), tính từ bảng ratings.
      * Mặc định 0 khi chưa có rating nào.
      */
-    @Column(name = "avg_rating", precision = 2, scale = 1)
+    @Column(name = "avg_rating", precision = 2, scale = 1, nullable = false)
     @Builder.Default
     private BigDecimal avgRating = BigDecimal.ZERO;
 }

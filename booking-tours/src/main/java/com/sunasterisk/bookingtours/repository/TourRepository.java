@@ -64,6 +64,11 @@ public interface TourRepository extends JpaRepository<Tour, Long> {
      * lỗi parse với một số phiên bản Hibernate.
      * countQuery tường minh (không join) để Spring Data JPA tính đúng totalElements.
      *
+     * <p>Dùng {@code LEFT JOIN t.category c} thay vì path navigation {@code t.category.id}
+     * để tránh implicit INNER JOIN do JPQL spec sinh ra. Vì {@code category_id} là nullable
+     * (ON DELETE SET NULL), INNER JOIN sẽ loại bỏ các tour có {@code category_id = NULL}
+     * ngay cả khi {@code :categoryId IS NULL} (không lọc theo category).
+     *
      * @param keyword    từ khoá tìm kiếm (null → bỏ qua)
      * @param categoryId id danh mục (null → tất cả danh mục)
      * @param status     trạng thái tour cần lọc (truyền {@link TourStatus#ACTIVE})
@@ -71,19 +76,19 @@ public interface TourRepository extends JpaRepository<Tour, Long> {
      * @return {@code Page<Tour>} ACTIVE với category đã được fetch
      */
     @EntityGraph(attributePaths = "category")
-    @Query(value = "SELECT t FROM Tour t " +
+    @Query(value = "SELECT t FROM Tour t LEFT JOIN t.category c " +
                    "WHERE t.status = :status " +
                    "AND (:keyword IS NULL OR :keyword = '' " +
                    "       OR LOWER(t.title)       LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                    "       OR LOWER(t.destination) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-                   "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+                   "AND (:categoryId IS NULL OR c.id = :categoryId) " +
                    "ORDER BY t.createdAt DESC",
-           countQuery = "SELECT COUNT(t) FROM Tour t " +
+           countQuery = "SELECT COUNT(t) FROM Tour t LEFT JOIN t.category c " +
                         "WHERE t.status = :status " +
                         "AND (:keyword IS NULL OR :keyword = '' " +
                         "       OR LOWER(t.title)       LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                         "       OR LOWER(t.destination) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-                        "AND (:categoryId IS NULL OR t.category.id = :categoryId)")
+                        "AND (:categoryId IS NULL OR c.id = :categoryId)")
     Page<Tour> searchPublic(@Param("keyword") String keyword,
                             @Param("categoryId") Long categoryId,
                             @Param("status") TourStatus status,

@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 /**
  * Service xử lý upload / xóa file trên local filesystem.
@@ -42,7 +43,7 @@ public class FileStorageService {
      * @param file file cần lưu, không được null và không được rỗng
      * @return đường dẫn URL tương đối để lưu vào DB, ví dụ {@code /uploads/abc123_photo.jpg}
      * @throws IOException              nếu gặp lỗi I/O khi ghi file
-     * @throws IllegalArgumentException nếu content-type không phải ảnh hợp lệ
+     * @throws IllegalArgumentException nếu content-type không phải ảnh hợp lệ, hoặc tên file không hợp lệ
      */
     public String store(MultipartFile file) throws IOException {
         // Kiểm tra content-type hợp lệ
@@ -52,19 +53,33 @@ public class FileStorageService {
                     "Invalid file type. Allowed: JPEG, PNG, GIF, WebP");
         }
 
-        // Làm sạch tên file gốc để tránh path traversal
-        String originalFilename = StringUtils.cleanPath(
-                file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload");
+        // Lấy phần tên file thuần (không có directory component) để chống path traversal.
+        // StringUtils.cleanPath một mình không đủ: "uuid_../../../etc/passwd" vẫn escape
+        // khỏi uploadDir khi được resolve(). Path.getFileName() trả về component cuối cùng,
+        // loại bỏ hoàn toàn mọi dấu phân cách thư mục do browser/client gửi lên.
+        String raw = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
+        String safeFilename = Paths.get(StringUtils.cleanPath(raw)).getFileName().toString();
+
+        // Từ chối tên file rỗng hoặc còn chứa ".." sau khi đã làm sạch
+        if (safeFilename.isBlank() || safeFilename.contains("..")) {
+            throw new IllegalArgumentException("Invalid filename: " + raw);
+        }
 
         // Tạo tên file unique bằng UUID để tránh trùng
-        String storedFilename = UUID.randomUUID() + "_" + originalFilename;
+        String storedFilename = UUID.randomUUID() + "_" + safeFilename;
 
         // Tạo thư mục nếu chưa tồn tại
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(uploadPath);
 
+        // Resolve rồi normalize, sau đó kiểm tra containment để đảm bảo file
+        // không bị ghi ra ngoài uploadDir dù có bất kỳ ký tự nào còn sót lại.
+        Path targetPath = uploadPath.resolve(storedFilename).normalize();
+        if (!targetPath.startsWith(uploadPath)) {
+            throw new IllegalArgumentException("Invalid file path detected: " + storedFilename);
+        }
+
         // Ghi file (ghi đè nếu tình cờ trùng tên — thực tế UUID đảm bảo unique)
-        Path targetPath = uploadPath.resolve(storedFilename);
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
         // Trả về URL tương đối để lưu vào DB
@@ -74,6 +89,7 @@ public class FileStorageService {
     /**
      * Xóa file khỏi filesystem theo URL tương đối.
      * Bỏ qua nếu URL null hoặc không bắt đầu bằng {@code /uploads/}.
+     * Kiểm tra containment để đảm bảo chỉ xóa file trong uploadDir.
      *
      * @param fileUrl URL tương đối, ví dụ {@code /uploads/abc123_photo.jpg}
      */
@@ -82,11 +98,19 @@ public class FileStorageService {
             return;
         }
         String filename = fileUrl.substring("/uploads/".length());
-        Path filePath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(filename);
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path filePath = uploadPath.resolve(filename).normalize();
+
+        // Đảm bảo đường dẫn nằm trong uploadDir trước khi xóa
+        if (!filePath.startsWith(uploadPath)) {
+            return;
+        }
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
             // Log warning nhưng không ném exception — việc xóa file cũ là best-effort
+            Logger.getLogger(FileStorageService.class.getName())
+                    .warning("Failed to delete uploaded file '" + filePath + "': " + e.getMessage());
         }
     }
 }

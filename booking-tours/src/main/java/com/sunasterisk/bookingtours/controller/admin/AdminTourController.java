@@ -120,6 +120,10 @@ public class AdminTourController {
         }
 
         if (bindingResult.hasErrors()) {
+            // Cleanup orphan upload (if any)
+            fileStorageService.delete(request.getThumbnailUrl());
+            request.setThumbnailUrl(null);
+
             // editMode = false vì đây là form tạo mới
             model.addAttribute("editMode", false);
             addFormData(model);
@@ -131,6 +135,10 @@ public class AdminTourController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Tour '" + request.getTitle() + "' created successfully.");
         } catch (IllegalArgumentException e) {
+            // Cleanup orphan upload (if any)
+            fileStorageService.delete(request.getThumbnailUrl());
+            request.setThumbnailUrl(null);
+
             model.addAttribute("editMode", false);
             model.addAttribute("errorMessage", e.getMessage());
             addFormData(model);
@@ -190,11 +198,10 @@ public class AdminTourController {
             RedirectAttributes redirectAttributes) {
 
         // Xử lý upload thumbnail mới nếu có
-        if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+        boolean hasNewThumbnail = thumbnailFile != null && !thumbnailFile.isEmpty();
+        if (hasNewThumbnail) {
             try {
                 String uploadedUrl = fileStorageService.store(thumbnailFile);
-                // Xóa ảnh cũ khỏi filesystem (best-effort, không ném lỗi nếu fail)
-                fileStorageService.delete(currentThumbnailUrl);
                 request.setThumbnailUrl(uploadedUrl);
             } catch (Exception e) {
                 log.warn("Failed to upload thumbnail for tour {}: {}", id, e.getMessage());
@@ -204,6 +211,12 @@ public class AdminTourController {
         }
 
         if (bindingResult.hasErrors()) {
+            // Nếu đã upload file mới rồi mà form lỗi, xóa file mới để tránh orphan
+            // và giữ nguyên thumbnail cũ để không làm hỏng ảnh hiện tại.
+            if (hasNewThumbnail) {
+                fileStorageService.delete(request.getThumbnailUrl());
+                request.setThumbnailUrl(currentThumbnailUrl);
+            }
             model.addAttribute("tourId", id);
             model.addAttribute("editMode", true);
             addFormData(model);
@@ -212,9 +225,17 @@ public class AdminTourController {
 
         try {
             tourService.update(id, request);
+            // Chỉ xóa thumbnail cũ sau khi update thành công
+            if (hasNewThumbnail) {
+                fileStorageService.delete(currentThumbnailUrl);
+            }
             redirectAttributes.addFlashAttribute("successMessage",
                     "Tour '" + request.getTitle() + "' updated successfully.");
         } catch (IllegalArgumentException e) {
+            if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+                fileStorageService.delete(request.getThumbnailUrl());
+                request.setThumbnailUrl(currentThumbnailUrl);
+            }
             model.addAttribute("tourId", id);
             model.addAttribute("editMode", true);
             model.addAttribute("errorMessage", e.getMessage());
