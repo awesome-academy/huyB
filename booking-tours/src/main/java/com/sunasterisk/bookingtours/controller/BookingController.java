@@ -8,6 +8,7 @@ import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.repository.BookingRepository;
 import com.sunasterisk.bookingtours.service.BookingService;
+import com.sunasterisk.bookingtours.service.PaymentService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.service.UserService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
@@ -49,6 +50,7 @@ public class BookingController {
     private final TourService tourService;
     private final UserService userService;
     private final BookingRepository bookingRepository;
+    private final PaymentService paymentService;
 
     // ----------------------------------------------------------------
     // GET /bookings  — Lịch sử booking (task 6.3)
@@ -112,6 +114,8 @@ public class BookingController {
 
         Booking booking = bookingService.getBookingDetail(auth.getName(), id);
         model.addAttribute("booking", booking);
+        // Load payment info if exists
+        paymentService.findByBookingId(id).ifPresent(p -> model.addAttribute("payment", p));
         return "bookings/detail";
     }
 

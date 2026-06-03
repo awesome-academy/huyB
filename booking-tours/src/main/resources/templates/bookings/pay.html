@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          pageTitle='Payment',
+          content=~{::section#content},
+          extraHead=~{},
+          extraScripts=~{::scripts})}">
+<body>
+<section id="content">
+
+    <!-- ============================================================ -->
+    <!-- Breadcrumb                                                    -->
+    <!-- ============================================================ -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/}" class="text-decoration-none">
+                    <i class="bi bi-house me-1"></i>Home
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/bookings}" class="text-decoration-none">My Bookings</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/bookings/{id}(id=${booking.id})}" class="text-decoration-none"
+                   th:text="${booking.bookingCode}">BK-00000000-0000</a>
+            </li>
+            <li class="breadcrumb-item active">Payment</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <!-- Page heading -->
+            <div class="text-center mb-4">
+                <i class="bi bi-credit-card-2-front text-primary" style="font-size: 3rem;"></i>
+                <h2 class="fw-bold mt-2">Complete Your Payment</h2>
+                <p class="text-muted">Transfer the amount below and enter your transaction code to submit payment.</p>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- Booking Summary                                               -->
+            <!-- ============================================================ -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    <i class="bi bi-receipt me-2"></i>Booking Summary
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-hash me-2"></i>Booking Code</span>
+                        <span class="fw-bold text-primary font-monospace"
+                              th:text="${booking.bookingCode}">BK-00000000-0000</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-map me-2"></i>Tour</span>
+                        <span class="fw-semibold" th:text="${booking.tour.title}">Tour Title</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-people me-2"></i>Participants</span>
+                        <span class="fw-semibold" th:text="${booking.participants}">1</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-light">
+                        <span class="fw-bold fs-5">
+                            <i class="bi bi-cash-coin me-2 text-success"></i>Amount to Transfer
+                        </span>
+                        <span class="fw-bold text-success fs-5" id="totalAmount"
+                              th:data-amount="${booking.totalPrice}">
+                            <span th:text="${#numbers.formatDecimal(booking.totalPrice, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- Payment Form                                                  -->
+            <!-- ============================================================ -->
+            <form th:action="@{/bookings/{id}/pay(id=${booking.id})}"
+                  method="post"
+                  th:object="${paymentRequest}"
+                  id="paymentForm">
+
+                <!-- ============================================================ -->
+                <!-- Step 1: Select Bank Account                                   -->
+                <!-- ============================================================ -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header fw-semibold">
+                        <span class="badge bg-primary rounded-circle me-2">1</span>
+                        Select Your Bank Account
+                    </div>
+                    <div class="card-body">
+
+                        <!-- No bank accounts -->
+                        <div th:if="${#lists.isEmpty(bankAccounts)}"
+                             class="alert alert-warning mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            You have no bank accounts registered.
+                            <a th:href="@{/profile/bank-accounts}" class="alert-link">
+                                Add a bank account
+                            </a>
+                            to proceed with payment.
+                        </div>
+
+                        <!-- Bank account list -->
+                        <div th:if="${!#lists.isEmpty(bankAccounts)}">
+                            <p class="text-muted small mb-3">
+                                Select the bank account you used to make the transfer:
+                            </p>
+                            <div class="row g-3" id="bankAccountCards">
+                                <div class="col-md-6"
+                                     th:each="account : ${bankAccounts}">
+                                    <label th:for="'bank_' + ${account.id}"
+                                           class="bank-card-label w-100 h-100"
+                                           style="cursor: pointer;">
+                                        <input type="radio"
+                                               name="bankAccountId"
+                                               th:id="'bank_' + ${account.id}"
+                                               th:value="${account.id}"
+                                               th:field="*{bankAccountId}"
+                                               class="bank-radio d-none"
+                                               th:data-bankname="${account.bankName}"
+                                               th:data-accountnumber="${account.accountNumber}"
+                                               th:data-accountholder="${account.accountHolder}"
+                                               th:checked="${account.isDefault}"/>
+                                        <div class="card h-100 border-2 bank-card"
+                                             th:id="'card_' + ${account.id}"
+                                             th:classappend="${account.isDefault} ? 'border-primary bg-primary bg-opacity-10' : 'border-light'">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <span class="fw-bold text-primary"
+                                                          th:text="${account.bankName}">Bank Name</span>
+                                                    <span th:if="${account.isDefault}"
+                                                          class="badge bg-success small">Default</span>
+                                                </div>
+                                                <div class="font-monospace fs-6 fw-semibold mb-1"
+                                                     th:text="${account.accountNumber}">0000000000</div>
+                                                <div class="text-muted small"
+                                                     th:text="${account.accountHolder}">ACCOUNT HOLDER</div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            <!-- Validation error -->
+                            <div th:if="${#fields.hasErrors('bankAccountId')}"
+                                 class="text-danger small mt-2">
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                <span th:errors="*{bankAccountId}">Error</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- Step 2: Transfer Information (shown after selecting account)  -->
+                <!-- ============================================================ -->
+                <div class="card border-0 shadow-sm mb-4" id="transferInfoCard"
+                     th:style="${#lists.isEmpty(bankAccounts)} ? 'display:none' : ''">
+                    <div class="card-header fw-semibold">
+                        <span class="badge bg-primary rounded-circle me-2">2</span>
+                        Transfer Information
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info border-0 mb-3" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Please transfer the exact amount to the bank account below using
+                            your internet banking app.
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <span class="text-muted"><i class="bi bi-bank me-2"></i>Bank</span>
+                                <span class="fw-bold" id="infoBank">—</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <span class="text-muted">
+                                    <i class="bi bi-credit-card me-2"></i>Account Number
+                                </span>
+                                <span class="fw-bold font-monospace" id="infoAccountNumber">—</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <span class="text-muted">
+                                    <i class="bi bi-person me-2"></i>Account Holder
+                                </span>
+                                <span class="fw-bold" id="infoAccountHolder">—</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-light">
+                                <span class="fw-bold">
+                                    <i class="bi bi-cash me-2 text-success"></i>Amount
+                                </span>
+                                <span class="fw-bold text-success fs-5" id="infoAmount">—</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <span class="text-muted">
+                                    <i class="bi bi-chat-square-text me-2"></i>Transfer Note
+                                </span>
+                                <span class="fw-bold text-primary font-monospace"
+                                      th:text="${booking.bookingCode}">BK-00000000-0000</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- Step 3: Enter Transaction Code                                -->
+                <!-- ============================================================ -->
+                <div class="card border-0 shadow-sm mb-4"
+                     th:style="${#lists.isEmpty(bankAccounts)} ? 'display:none' : ''"
+                     id="transactionCodeCard">
+                    <div class="card-header fw-semibold">
+                        <span class="badge bg-primary rounded-circle me-2">3</span>
+                        Enter Transaction Code
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            After completing the bank transfer, enter the transaction reference
+                            code provided by your bank.
+                        </p>
+                        <div class="mb-3">
+                            <label for="transactionCode" class="form-label fw-semibold">
+                                Transaction Code <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   id="transactionCode"
+                                   th:field="*{transactionCode}"
+                                   class="form-control form-control-lg font-monospace"
+                                   th:classappend="${#fields.hasErrors('transactionCode')} ? 'is-invalid' : ''"
+                                   placeholder="e.g. FT2406030012345678"
+                                   maxlength="255"
+                                   autocomplete="off"/>
+                            <div th:if="${#fields.hasErrors('transactionCode')}"
+                                 class="invalid-feedback">
+                                <span th:errors="*{transactionCode}">Error</span>
+                            </div>
+                            <div class="form-text">
+                                <i class="bi bi-shield-check me-1 text-success"></i>
+                                This code will be used by admin to verify your payment.
+                            </div>
+                        </div>
+
+                        <!-- Submit button -->
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit"
+                                    class="btn btn-success btn-lg"
+                                    onclick="return confirm('Are you sure you want to submit this payment? Make sure you have completed the bank transfer.')">
+                                <i class="bi bi-send-check me-2"></i>Submit Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+
+            <!-- ============================================================ -->
+            <!-- Action Buttons                                                -->
+            <!-- ============================================================ -->
+            <div class="d-flex gap-3 justify-content-start mb-4">
+                <a th:href="@{/bookings/{id}(id=${booking.id})}"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Booking
+                </a>
+                <a th:href="@{/profile/bank-accounts}"
+                   class="btn btn-outline-primary">
+                    <i class="bi bi-bank me-2"></i>Manage Bank Accounts
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- Page-specific Scripts                                         -->
+<!-- ============================================================ -->
+<th:block th:fragment="scripts">
+<script th:inline="javascript">
+    (function () {
+        const radios = document.querySelectorAll('.bank-radio');
+        const transferInfoCard = document.getElementById('transferInfoCard');
+        const transactionCodeCard = document.getElementById('transactionCodeCard');
+        const infoBank = document.getElementById('infoBank');
+        const infoAccountNumber = document.getElementById('infoAccountNumber');
+        const infoAccountHolder = document.getElementById('infoAccountHolder');
+        const infoAmount = document.getElementById('infoAmount');
+        const totalAmountEl = document.getElementById('totalAmount');
+
+        // Format number as VND
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+        }
+
+        function updateTransferInfo(radio) {
+            const bankName = radio.dataset.bankname;
+            const accountNumber = radio.dataset.accountnumber;
+            const accountHolder = radio.dataset.accountholder;
+            const amount = totalAmountEl ? totalAmountEl.dataset.amount : '0';
+
+            infoBank.textContent = bankName;
+            infoAccountNumber.textContent = accountNumber;
+            infoAccountHolder.textContent = accountHolder;
+            infoAmount.textContent = formatVND(parseFloat(amount));
+
+            transferInfoCard.style.display = '';
+            transactionCodeCard.style.display = '';
+        }
+
+        function updateCardStyles(selectedId) {
+            radios.forEach(function (r) {
+                const card = document.getElementById('card_' + r.value);
+                if (card) {
+                    if (r.value === selectedId) {
+                        card.classList.remove('border-light');
+                        card.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+                    } else {
+                        card.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+                        card.classList.add('border-light');
+                    }
+                }
+            });
+        }
+
+        radios.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (this.checked) {
+                    updateCardStyles(this.value);
+                    updateTransferInfo(this);
+                }
+            });
+
+            // Init: if already checked (default account), show info
+            if (radio.checked) {
+                updateCardStyles(radio.value);
+                updateTransferInfo(radio);
+            }
+        });
+    })();
+</script>
+</th:block>
+</body>
+</html>
+
