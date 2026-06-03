@@ -257,7 +257,7 @@
 
         const total = pricePerPerson * value;
         document.getElementById('totalPriceDisplay').textContent = formatCurrency(total);
-        document.getElementById('summaryParticipants').textContent = value;
+        document.getElementById('summaryParticipants').textContent = value.toString();
     }
 
     /**
@@ -265,7 +265,7 @@
      */
     function changeParticipants(delta, max) {
         const input = document.getElementById('participants');
-        let value = parseInt(input.value, 10) || 1;
+        let value = parseInt(input.value.toString(), 10) || 1;
         value += delta;
         if (value < 1) value = 1;
         const limit = max || maxParticipants;

@@ -86,7 +86,7 @@ public class BookingController {
         model.addAttribute("currentPage", bookingPage.getNumber());
         model.addAttribute("totalPages", bookingPage.getTotalPages());
         model.addAttribute("pageNumbers", PaginationUtils.getPageNumbers(bookingPage.getNumber(), bookingPage.getTotalPages()));
-        model.addAttribute("selectedStatus", status != null ? status.toUpperCase() : "");
+        model.addAttribute("selectedStatus", bookingStatus != null ? bookingStatus.name() : "");
         model.addAttribute("statuses", BookingStatus.values());
         return "bookings/list";
     }
@@ -140,6 +140,7 @@ public class BookingController {
             redirectAttrs.addFlashAttribute("errorMessage", e.getMessage());
         } catch (AccessDeniedException e) {
             redirectAttrs.addFlashAttribute("errorMessage", "You do not have permission to cancel this booking.");
+            return "redirect:/bookings";
         }
         return "redirect:/bookings/" + id;
     }
@@ -211,7 +212,7 @@ public class BookingController {
             model.addAttribute("errorMessage", e.getMessage());
             return "bookings/new";
         } catch (Exception e) {
-            redirectAttrs.addFlashAttribute("errorMessage", "Booking failed: " + e.getMessage());
+            redirectAttrs.addFlashAttribute("errorMessage", "Booking failed. Please try again later.");
             return "redirect:/tours/" + bookingRequest.getTourId();
         }
     }

@@ -1,10 +1,7 @@
 package com.sunasterisk.bookingtours.service.impl;
 
 import com.sunasterisk.bookingtours.dto.BookingRequest;
-import com.sunasterisk.bookingtours.entity.Booking;
-import com.sunasterisk.bookingtours.entity.BookingStatus;
-import com.sunasterisk.bookingtours.entity.Tour;
-import com.sunasterisk.bookingtours.entity.User;
+import com.sunasterisk.bookingtours.entity.*;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.repository.BookingRepository;
 import com.sunasterisk.bookingtours.repository.TourRepository;
@@ -57,7 +54,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
         // 2. Lấy tour (chỉ ACTIVE mới cho đặt)
-        Tour tour = tourRepository.findById(request.getTourId())
+        Tour tour = tourRepository.findByIdAndStatus(request.getTourId(), TourStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Tour", request.getTourId()));
 
         // 3. Validate số người

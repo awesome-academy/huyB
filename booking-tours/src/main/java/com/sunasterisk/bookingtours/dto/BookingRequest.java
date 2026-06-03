@@ -24,7 +24,6 @@ public class BookingRequest {
      */
     @NotNull(message = "Number of participants is required")
     @Min(value = 1, message = "At least 1 participant is required")
-    @Max(value = 100, message = "Maximum 100 participants per booking")
     private Integer participants;
 
     /**
