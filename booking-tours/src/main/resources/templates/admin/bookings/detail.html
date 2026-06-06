@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle='Booking Detail', content=~{::pageContent}, extraHead=~{}, extraScripts=~{::extraScripts})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-calendar-check-fill me-2 text-danger"></i>Booking Detail
+        </h3>
+        <a th:href="@{/admin/bookings}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Bookings
+        </a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Booking Info -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-semibold mb-0">
+                        <i class="bi bi-ticket-perforated me-2 text-primary"></i>Booking Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Booking Code</dt>
+                        <dd class="col-sm-8 fw-semibold" th:text="${booking.bookingCode}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Status</dt>
+                        <dd class="col-sm-8">
+                            <span th:switch="${booking.status?.name()}">
+                                <span th:case="'PENDING'"   class="badge bg-warning text-dark fs-6">PENDING</span>
+                                <span th:case="'CONFIRMED'" class="badge bg-success fs-6">CONFIRMED</span>
+                                <span th:case="'CANCELLED'" class="badge bg-danger fs-6">CANCELLED</span>
+                                <span th:case="'COMPLETED'" class="badge bg-primary fs-6">COMPLETED</span>
+                                <span th:case="*"           class="badge bg-secondary fs-6">UNKNOWN</span>
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4 text-muted">Participants</dt>
+                        <dd class="col-sm-8" th:text="${booking.participants}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Total Price</dt>
+                        <dd class="col-sm-8 fw-bold text-success"
+                            th:text="${#numbers.formatDecimal(booking.totalPrice, 1, 'COMMA', 0, 'POINT') + ' VND'}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Booked At</dt>
+                        <dd class="col-sm-8"
+                            th:text="${booking.createdAt != null ? #temporals.format(booking.createdAt, 'dd/MM/yyyy HH:mm') : '—'}">—</dd>
+
+                        <dt class="col-sm-4 text-muted" th:if="${booking.note != null}">Note</dt>
+                        <dd class="col-sm-8" th:if="${booking.note != null}" th:text="${booking.note}">—</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-semibold mb-0">
+                        <i class="bi bi-person-fill me-2 text-success"></i>Customer Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Full Name</dt>
+                        <dd class="col-sm-8 fw-semibold" th:text="${booking.user.fullName}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Email</dt>
+                        <dd class="col-sm-8" th:text="${booking.user.email}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Phone</dt>
+                        <dd class="col-sm-8" th:text="${booking.user.phone ?: '—'}">—</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tour Info -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-semibold mb-0">
+                        <i class="bi bi-map-fill me-2 text-warning"></i>Tour Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Tour Title</dt>
+                        <dd class="col-sm-8 fw-semibold" th:text="${booking.tour.title}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Destination</dt>
+                        <dd class="col-sm-8" th:text="${booking.tour.destination ?: '—'}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Departure Date</dt>
+                        <dd class="col-sm-8"
+                            th:text="${booking.tour.departureDate != null ? #temporals.format(booking.tour.departureDate, 'dd/MM/yyyy') : '—'}">—</dd>
+
+                        <dt class="col-sm-4 text-muted">Price / Person</dt>
+                        <dd class="col-sm-8"
+                            th:text="${#numbers.formatDecimal(booking.tour.price, 1, 'COMMA', 0, 'POINT') + ' VND'}">—</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Info -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-semibold mb-0">
+                        <i class="bi bi-cash-stack me-2 text-danger"></i>Payment Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div th:if="${payment == null}" class="text-muted fst-italic">
+                        No payment record yet.
+                    </div>
+                    <dl th:if="${payment != null}" class="row mb-0">
+                        <dt class="col-sm-5 text-muted">Amount</dt>
+                        <dd class="col-sm-7 fw-bold text-success"
+                            th:text="${#numbers.formatDecimal(payment.amount, 1, 'COMMA', 0, 'POINT') + ' VND'}">—</dd>
+
+                        <dt class="col-sm-5 text-muted">Transaction Code</dt>
+                        <dd class="col-sm-7 font-monospace" th:text="${payment.transactionCode ?: '—'}">—</dd>
+
+                        <dt class="col-sm-5 text-muted">Bank Account</dt>
+                        <dd class="col-sm-7"
+                            th:text="${payment.bankAccount.bankName + ' — ' + payment.bankAccount.accountNumber}">—</dd>
+
+                        <dt class="col-sm-5 text-muted">Account Holder</dt>
+                        <dd class="col-sm-7" th:text="${payment.bankAccount.accountHolder}">—</dd>
+
+                        <dt class="col-sm-5 text-muted">Payment Status</dt>
+                        <dd class="col-sm-7">
+                            <span th:switch="${payment.status?.name()}">
+                                <span th:case="'PENDING'"   class="badge bg-warning text-dark">PENDING</span>
+                                <span th:case="'CONFIRMED'" class="badge bg-success">CONFIRMED</span>
+                                <span th:case="'FAILED'"    class="badge bg-danger">FAILED</span>
+                                <span th:case="*"           class="badge bg-secondary">UNKNOWN</span>
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5 text-muted">Paid At</dt>
+                        <dd class="col-sm-7"
+                            th:text="${payment.createdAt != null ? #temporals.format(payment.createdAt, 'dd/MM/yyyy HH:mm') : '—'}">—</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 mt-4"
+         th:if="${booking.status?.name() == 'PENDING' or booking.status?.name() == 'CONFIRMED'}">
+
+        <!-- Confirm: only for PENDING -->
+        <form th:if="${booking.status?.name() == 'PENDING'}"
+              th:action="@{/admin/bookings/{id}/confirm(id=${booking.id})}"
+              method="post"
+              onsubmit="return confirm('Confirm payment for this booking?\nStatus will be changed to CONFIRMED.')">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-lg me-1"></i>Confirm Payment
+            </button>
+        </form>
+
+        <!-- Cancel: only for PENDING or CONFIRMED -->
+        <form th:action="@{/admin/bookings/{id}/cancel(id=${booking.id})}"
+              method="post"
+              onsubmit="return confirm('Are you sure you want to cancel this booking?\nThis action cannot be undone.')">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-x-lg me-1"></i>Cancel Booking
+            </button>
+        </form>
+    </div>
+
+</th:block>
+
+<th:block th:fragment="extraScripts"></th:block>
+</body>
+</html>
+

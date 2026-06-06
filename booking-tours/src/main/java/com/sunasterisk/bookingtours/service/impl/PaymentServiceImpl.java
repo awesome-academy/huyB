@@ -9,7 +9,9 @@ import com.sunasterisk.bookingtours.repository.UserBankAccountRepository;
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,6 +86,10 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public Optional<Payment> findByBookingId(Long bookingId) {
-        return paymentRepository.findByBookingId(bookingId);
+        Optional<Payment> payment = paymentRepository.findByBookingId(bookingId);
+        // Khởi tạo lazy proxy BankAccount trong khi session còn mở
+        // để Thymeleaf có thể truy cập payment.bankAccount sau khi transaction đóng
+        payment.ifPresent(value -> Hibernate.initialize(value.getBankAccount()));
+        return payment;
     }
 }
