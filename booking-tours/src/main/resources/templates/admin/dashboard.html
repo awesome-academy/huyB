@@ -14,34 +14,40 @@
         </span>
     </div>
 
+    <!-- Stats cards -->
     <div class="row g-4">
-        <div class="col-md-4">
+        <!-- Total Users -->
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center gap-3">
                     <div class="bg-primary bg-opacity-10 p-3 rounded-3">
                         <i class="bi bi-people-fill fs-2 text-primary"></i>
                     </div>
                     <div>
-                        <p class="text-muted mb-1 small">Users</p>
-                        <h4 class="fw-bold mb-0">—</h4>
+                        <p class="text-muted mb-1 small">Total Users</p>
+                        <h4 class="fw-bold mb-0" th:text="${stats.totalUsers}">0</h4>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+
+        <!-- Total Tours -->
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center gap-3">
                     <div class="bg-success bg-opacity-10 p-3 rounded-3">
                         <i class="bi bi-map-fill fs-2 text-success"></i>
                     </div>
                     <div>
-                        <p class="text-muted mb-1 small">Tours</p>
-                        <h4 class="fw-bold mb-0">—</h4>
+                        <p class="text-muted mb-1 small">Total Tours</p>
+                        <h4 class="fw-bold mb-0" th:text="${stats.totalTours}">0</h4>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+
+        <!-- Bookings Today -->
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center gap-3">
                     <div class="bg-warning bg-opacity-10 p-3 rounded-3">
@@ -49,16 +55,27 @@
                     </div>
                     <div>
                         <p class="text-muted mb-1 small">Bookings Today</p>
-                        <h4 class="fw-bold mb-0">—</h4>
+                        <h4 class="fw-bold mb-0" th:text="${stats.bookingsToday}">0</h4>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="mt-5 text-muted text-center small">
-        <i class="bi bi-info-circle me-1"></i>
-        Dashboard statistics will be implemented in Task 10.1
+        <!-- Revenue This Month -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-danger bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-cash-coin fs-2 text-danger"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-1 small">Revenue This Month</p>
+                        <h4 class="fw-bold mb-0"
+                            th:text="${#numbers.formatDecimal(stats.revenueThisMonth, 0, 'COMMA', 0, 'POINT') + ' ₫'}">0 ₫</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Quick navigation -->
