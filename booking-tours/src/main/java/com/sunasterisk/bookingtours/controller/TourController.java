@@ -1,19 +1,22 @@
 package com.sunasterisk.bookingtours.controller;
 
+import com.sunasterisk.bookingtours.dto.RatingRequest;
 import com.sunasterisk.bookingtours.entity.Tour;
 import com.sunasterisk.bookingtours.service.CategoryService;
+import com.sunasterisk.bookingtours.service.RatingService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * Controller công khai cho trang danh sách và chi tiết tour.
@@ -28,6 +31,7 @@ public class TourController {
 
     private final TourService tourService;
     private final CategoryService categoryService;
+    private final RatingService ratingService;
 
     /**
      * GET /tours — Danh sách tour công khai: phân trang, lọc category, tìm kiếm theo tên/địa điểm.
@@ -67,15 +71,59 @@ public class TourController {
     /**
      * GET /tours/{id} — Chi tiết tour công khai (chỉ ACTIVE).
      * Hiển thị đầy đủ thông tin: mô tả, giá, ngày khởi hành, rating, category, v.v.
+     * 9.4 — Truyền thêm điểm rating hiện tại của user (nếu đã đăng nhập).
      *
      * @param id    id của tour
      * @param model Spring MVC model
      * @return view name
      */
     @GetMapping("/{id}")
-    public String tourDetail(@PathVariable Long id, Model model) {
+    public String tourDetail(@PathVariable Long id, Authentication authentication, Model model) {
         Tour tour = tourService.getPublicById(id);
         model.addAttribute("tour", tour);
+
+        // 9.4: Lấy điểm rating hiện tại của user để hiển thị trạng thái sao đã chọn
+        Short userRating = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            userRating = ratingService.getUserRating(id, authentication.getName());
+        }
+        model.addAttribute("userRating", userRating);
+        model.addAttribute("ratingRequest", new RatingRequest());
+
         return "tours/detail";
+    }
+
+    // ================================================================
+    // 9.4 — Rating tour 1–5 sao
+    // ================================================================
+
+    /**
+     * POST /tours/{id}/rate — User rating tour (1–5 sao).
+     * Upsert: tạo mới hoặc cập nhật rating, sau đó cập nhật avg_rating trên tour.
+     *
+     * @param id               id của tour
+     * @param ratingRequest    dữ liệu rating (score 1–5)
+     * @param bindingResult    kết quả validate
+     * @param authentication   thông tin user đăng nhập
+     * @param redirectAttributes flash messages
+     * @return redirect về trang chi tiết tour
+     */
+    @PostMapping("/{id}/rate")
+    public String rateTour(@PathVariable Long id,
+                           @Valid @ModelAttribute RatingRequest ratingRequest,
+                           BindingResult bindingResult,
+                           Authentication authentication,
+                           RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Invalid rating score (must be 1–5).");
+            return "redirect:/tours/" + id;
+        }
+        try {
+            ratingService.rate(id, authentication.getName(), ratingRequest);
+            redirectAttributes.addFlashAttribute("successMessage", "Thank you for your rating!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to submit rating: " + e.getMessage());
+        }
+        return "redirect:/tours/" + id;
     }
 }

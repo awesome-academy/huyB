@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
       th:replace="~{layout/base :: layout(pageTitle=${tour.title}, content=~{::pageContent}, extraHead=~{}, extraScripts=~{})}">
 <body>
 <th:block th:fragment="pageContent">
@@ -231,6 +232,119 @@
         </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- 9.4 — Rating Tour (1–5 sao)                                  -->
+    <!-- Chỉ hiện với user đã đăng nhập                                -->
+    <!-- ============================================================ -->
+    <div class="mt-5 pt-4 border-top" sec:authorize="isAuthenticated()">
+        <h5 class="fw-semibold mb-3">
+            <i class="bi bi-star-fill text-warning me-2"></i>Rate This Tour
+        </h5>
+
+        <!-- Hiển thị điểm user đã rating trước đó (nếu có) -->
+        <div th:if="${userRating != null}" class="alert alert-info d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>
+                Your current rating:
+                <strong th:text="${userRating}">0</strong> / 5 star(s).
+                You can update it below.
+            </span>
+        </div>
+
+        <!-- Form rating: gửi POST /tours/{id}/rate -->
+        <form th:action="@{/tours/{id}/rate(id=${tour.id})}"
+              th:object="${ratingRequest}"
+              method="post"
+              class="d-flex align-items-center gap-3 flex-wrap">
+
+            <!-- Star selector: 5 nút radio được style thành icon sao -->
+            <div class="star-rating d-flex gap-1" id="starContainer">
+                <th:block th:each="i : ${#numbers.sequence(1, 5)}">
+                    <input type="radio"
+                           th:id="'star-' + ${i}"
+                           th:field="*{score}"
+                           th:value="${i}"
+                           class="d-none star-radio"
+                           th:checked="${userRating != null and userRating == i}"/>
+                    <label th:for="'star-' + ${i}"
+                           class="fs-3"
+                           th:title="${i} + ' star(s)'"
+                           style="cursor:pointer;">
+                        <i th:class="${userRating != null and userRating >= i}
+                         ? 'bi bi-star-fill text-warning'
+                         : 'bi bi-star text-warning'"></i>
+                    </label>
+                </th:block>
+            </div>
+
+            <button type="submit" class="btn btn-warning btn-sm">
+                <i class="bi bi-check-lg me-1"></i>Submit Rating
+            </button>
+        </form>
+    </div>
+
+    <!-- Guest: nhắc đăng nhập để rating -->
+    <div class="mt-4 text-muted small" sec:authorize="isAnonymous()">
+        <i class="bi bi-star me-1"></i>
+        <a th:href="@{/auth/login}">Login</a> to rate this tour.
+    </div>
+
+    <script th:inline="javascript">
+        (function () {
+            const radios = document.querySelectorAll('.star-radio');
+            const labels = document.querySelectorAll('#starContainer label i');
+            const labelEls = document.querySelectorAll('#starContainer label');
+
+            function highlightStars(selectedValue) {
+                labels.forEach((icon, idx) => {
+                    if (idx < selectedValue) {
+                        icon.className = 'bi bi-star-fill text-warning';
+                    } else {
+                        icon.className = 'bi bi-star text-warning';
+                    }
+                });
+            }
+
+            // Click: chọn rating
+            radios.forEach((radio) => {
+                radio.addEventListener('change', function () {
+                    highlightStars(parseInt(this.value));
+                });
+            });
+
+            // Hover: chỉ cập nhật những icon cần thay đổi
+            labelEls.forEach((label, idx) => {
+                label.addEventListener('mouseenter', () => {
+                    const checked = document.querySelector('.star-radio:checked');
+                    const currentValue = checked ? parseInt(checked.value) : 0;
+                    const hoverValue = idx + 1;
+
+                    labels.forEach((icon, iconIdx) => {
+                        const shouldFill = iconIdx < Math.max(currentValue, hoverValue);
+                        const alreadyFilled = icon.className.includes('bi-star-fill');
+
+                        if (shouldFill && !alreadyFilled) {
+                            icon.className = 'bi bi-star-fill text-warning';
+                        } else if (!shouldFill && alreadyFilled) {
+                            icon.className = 'bi bi-star text-warning';
+                        }
+                    });
+                });
+
+                // Rời chuột: trở về trạng thái đang được chọn
+                label.addEventListener('mouseleave', () => {
+                    const checked = document.querySelector('.star-radio:checked');
+                    highlightStars(checked ? parseInt(checked.value) : 0);
+                });
+            });
+
+            // Khởi tạo trạng thái ban đầu nếu đã có rating
+            const initialChecked = document.querySelector('.star-radio:checked');
+            if (initialChecked) {
+                highlightStars(parseInt(initialChecked.value));
+            }
+        })();
+    </script>
 </th:block>
 </body>
 </html>
