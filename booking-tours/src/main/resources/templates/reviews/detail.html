@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{layout/base :: layout(pageTitle=${review.title}, content=~{::pageContent}, extraHead=~{}, extraScripts=~{})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/}" class="text-decoration-none"><i class="bi bi-house me-1"></i>Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/reviews}" class="text-decoration-none">Reviews</a>
+            </li>
+            <li class="breadcrumb-item active" th:text="${review.title}">Detail</li>
+        </ol>
+    </nav>
+
+    <!-- HIDDEN warning -->
+    <div th:if="${review.status?.name() == 'HIDDEN'}"
+         class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-eye-slash-fill fs-5"></i>
+        <span>This review is currently <strong>hidden</strong> and not visible to the public.</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+
+            <!-- Main card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+
+                    <!-- Type badge -->
+                    <div class="mb-3">
+                        <span th:switch="${review.type?.name()}">
+                            <span th:case="'PLACE'" class="badge rounded-pill bg-success fs-6 px-3 py-2">
+                                <i class="bi bi-geo-alt me-1"></i>Place
+                            </span>
+                            <span th:case="'FOOD'" class="badge rounded-pill bg-warning text-dark fs-6 px-3 py-2">
+                                <i class="bi bi-cup-hot me-1"></i>Food
+                            </span>
+                            <span th:case="'NEWS'" class="badge rounded-pill bg-info text-dark fs-6 px-3 py-2">
+                                <i class="bi bi-newspaper me-1"></i>News
+                            </span>
+                        </span>
+                    </div>
+
+                    <!-- Title -->
+                    <h2 class="fw-bold mb-3" th:text="${review.title}">Review Title</h2>
+
+                    <!-- Meta -->
+                    <div class="d-flex flex-wrap gap-3 text-muted small mb-4">
+                        <span>
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span th:text="${review.user != null ? review.user.fullName : 'Unknown'}">Author</span>
+                        </span>
+                        <span th:if="${review.createdAt != null}">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            <span th:text="${#temporals.format(review.createdAt, 'dd MMM yyyy, HH:mm')}">—</span>
+                        </span>
+                        <span>
+                            <i class="bi bi-heart-fill text-danger me-1"></i>
+                            <span th:text="${review.likesCount}">0</span> like(s)
+                        </span>
+                    </div>
+
+                    <hr/>
+
+                    <!-- Content -->
+                    <div class="lh-lg text-secondary" style="white-space: pre-wrap;"
+                         th:text="${review.content}">Content goes here...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+
+            <!-- Author card -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold">
+                    <i class="bi bi-person me-2 text-primary"></i>Author
+                </div>
+                <div class="card-body d-flex align-items-center gap-3">
+                    <i class="bi bi-person-circle fs-2 text-secondary"></i>
+                    <div>
+                        <div class="fw-semibold"
+                             th:text="${review.user != null ? review.user.fullName : 'Unknown'}">Author Name</div>
+                        <div class="text-muted small"
+                             th:if="${review.user != null}"
+                             th:text="${review.user.email}">email@example.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions for owner -->
+            <div sec:authorize="isAuthenticated()" class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold">
+                    <i class="bi bi-gear me-2 text-secondary"></i>Actions
+                </div>
+                <div class="card-body d-grid gap-2"
+                     th:if="${review.user != null}"
+                     th:with="currentEmail=${#authentication.name}">
+                    <th:block th:if="${review.user.email == currentEmail}">
+                        <a th:href="@{/reviews/{id}/edit(id=${review.id})}"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil me-1"></i>Edit Review
+                        </a>
+                        <form th:action="@{/reviews/{id}/delete(id=${review.id})}"
+                              method="post"
+                              onsubmit="return confirm('Delete this review? This cannot be undone.')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                <i class="bi bi-trash me-1"></i>Delete Review
+                            </button>
+                        </form>
+                    </th:block>
+                </div>
+            </div>
+
+            <!-- Back -->
+            <a th:href="@{/reviews}" class="btn btn-outline-secondary w-100">
+                <i class="bi bi-arrow-left me-1"></i>Back to Reviews
+            </a>
+        </div>
+    </div>
+
+</th:block>
+</body>
+</html>
