@@ -122,7 +122,8 @@ public class TourController {
             ratingService.rate(id, authentication.getName(), ratingRequest);
             redirectAttributes.addFlashAttribute("successMessage", "Thank you for your rating!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to submit rating: " + e.getMessage());
+            // Không đưa e.getMessage() ra UI — có thể lộ chi tiết nội bộ.
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to submit rating. Please try again.");
         }
         return "redirect:/tours/" + id;
     }

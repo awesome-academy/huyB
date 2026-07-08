@@ -240,4 +240,16 @@ public class BookingServiceImpl implements BookingService {
         return bookingRepository.findByIdWithTourAndUser(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Booking getBookingByCodeForUser(String email, String bookingCode) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        return bookingRepository.findByBookingCodeAndUserId(bookingCode, user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingCode));
+    }
 }

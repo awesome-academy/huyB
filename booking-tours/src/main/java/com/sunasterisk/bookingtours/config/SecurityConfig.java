@@ -1,9 +1,11 @@
 package com.sunasterisk.bookingtours.config;
 
+import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.impl.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
@@ -30,6 +33,7 @@ public class SecurityConfig {
     private final JwtUtils jwtUtils;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final UserRepository userRepository;
 
     /**
      * JwtAuthenticationFilter không phải @Component để tránh bị Spring Boot
@@ -37,7 +41,7 @@ public class SecurityConfig {
      */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtils);
+        return new JwtAuthenticationFilter(jwtUtils, userRepository);
     }
 
     @Bean
@@ -73,13 +77,30 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
+                // KHÔNG lưu SecurityContext (Authentication) vào HTTP session.
+                // Nếu để mặc định (HttpSessionSecurityContextRepository), sau khi login
+                // qua Google, Authentication bị lưu vào session và được SecurityContextHolderFilter
+                // khôi phục ở mỗi request TRƯỚC JwtAuthenticationFilter → filter bỏ qua việc
+                // kiểm tra lại isActive/role trong DB (guard "getAuthentication() == null" là false)
+                // → user OAuth bị khoá vẫn truy cập được đến khi session hết hạn.
+                // NullSecurityContextRepository buộc MỌI request phải xác thực lại qua JWT cookie,
+                // đúng như thiết kế "JWT là nguồn sự thật sau đăng nhập".
+                // OAuth2 state param dùng repository riêng (HttpSessionOAuth2AuthorizationRequestRepository),
+                // không bị ảnh hưởng bởi thay đổi này.
+                .securityContext(sc -> sc.securityContextRepository(new NullSecurityContextRepository()))
+
                 // Phân quyền theo URL
                 .authorizeHttpRequests(auth -> auth
+                        // Rating tour là hành động thay đổi dữ liệu → bắt buộc đăng nhập.
+                        // Phải đặt TRƯỚC "/tours/**".permitAll() vì matcher đầu tiên khớp sẽ thắng;
+                        // nếu để sau, POST /tours/{id}/rate sẽ lọt permitAll và tới controller với
+                        // authentication == null → NPE.
+                        .requestMatchers(HttpMethod.POST, "/tours/*/rate").authenticated()
+
                         // Cho phép tất cả truy cập vào endpoints công khai
                         .requestMatchers(
                                 "/",
                                 "/tours/**",
-                                "/reviews/**",
                                 "/auth/**",
                                 "/css/**",
                                 "/js/**",
@@ -87,6 +108,11 @@ public class SecurityConfig {
                                 "/uploads/**",
                                 "/error/**"
                         ).permitAll()
+
+                        // Reviews: chỉ trang danh sách và trang chi tiết là công khai.
+                        // Mọi endpoint còn lại (/new, /edit, POST comment/like/delete...)
+                        // rơi xuống anyRequest().authenticated() bên dưới.
+                        .requestMatchers(HttpMethod.GET, "/reviews", "/reviews/{id:\\d+}").permitAll()
 
                         // Chỉ cho phép ROLE_ADMIN truy cập /admin/**
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -124,6 +150,26 @@ public class SecurityConfig {
                                 .oidcUserService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
+                )
+
+                // Security headers bổ sung ngoài defaults (nosniff, X-Frame-Options...)
+                // CSP: script/style chỉ từ chính app và cdn.jsdelivr.net (Bootstrap).
+                // 'unsafe-inline' là bắt buộc vì template còn dùng inline <script>
+                // và th:onclick — vẫn chặn được script từ mọi origin khác.
+                // HSTS chỉ được browser áp dụng trên HTTPS nên an toàn với dev HTTP.
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; "
+                                        + "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                                        + "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                                        + "font-src 'self' https://cdn.jsdelivr.net; "
+                                        + "img-src 'self' data: https:; "
+                                        + "form-action 'self'; "
+                                        + "frame-ancestors 'none'; "
+                                        + "base-uri 'self'"))
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000))
                 )
 
                 // Unauthenticated → redirect login; Access denied → 403

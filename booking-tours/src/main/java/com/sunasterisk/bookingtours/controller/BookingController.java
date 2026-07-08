@@ -4,13 +4,9 @@ import com.sunasterisk.bookingtours.dto.BookingRequest;
 import com.sunasterisk.bookingtours.entity.Booking;
 import com.sunasterisk.bookingtours.entity.BookingStatus;
 import com.sunasterisk.bookingtours.entity.Tour;
-import com.sunasterisk.bookingtours.entity.User;
-import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
-import com.sunasterisk.bookingtours.repository.BookingRepository;
 import com.sunasterisk.bookingtours.service.BookingService;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import com.sunasterisk.bookingtours.service.TourService;
-import com.sunasterisk.bookingtours.service.UserService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,8 +44,6 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final TourService tourService;
-    private final UserService userService;
-    private final BookingRepository bookingRepository;
     private final PaymentService paymentService;
 
     // ----------------------------------------------------------------
@@ -240,13 +234,7 @@ public class BookingController {
             Authentication authentication,
             Model model) {
 
-        User user = userService.getByEmail(authentication.getName());
-
-        Booking booking = bookingRepository
-                .findByBookingCodeAndUserId(bookingCode, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Booking not found: " + bookingCode));
-
+        Booking booking = bookingService.getBookingByCodeForUser(authentication.getName(), bookingCode);
         model.addAttribute("booking", booking);
         return "bookings/confirmation";
     }

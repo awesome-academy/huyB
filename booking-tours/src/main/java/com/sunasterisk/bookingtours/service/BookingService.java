@@ -118,4 +118,16 @@ public interface BookingService {
      * @throws com.sunasterisk.bookingtours.exception.ResourceNotFoundException nếu không tìm thấy
      */
     Booking getBookingById(Long bookingId);
+
+    /**
+     * Lấy booking theo booking code, chỉ trả về khi booking thuộc về user.
+     * Dùng cho trang xác nhận sau khi đặt tour thành công.
+     *
+     * @param email       email của user đang đăng nhập
+     * @param bookingCode mã booking (BK-YYYYMMDD-XXXX)
+     * @return Booking thuộc về user
+     * @throws com.sunasterisk.bookingtours.exception.ResourceNotFoundException nếu không tìm thấy
+     *         hoặc booking không thuộc user (không phân biệt để tránh lộ thông tin)
+     */
+    Booking getBookingByCodeForUser(String email, String bookingCode);
 }

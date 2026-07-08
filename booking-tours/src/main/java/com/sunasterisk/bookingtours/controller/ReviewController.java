@@ -4,7 +4,9 @@ import com.sunasterisk.bookingtours.dto.CommentRequest;
 import com.sunasterisk.bookingtours.dto.ReviewRequest;
 import com.sunasterisk.bookingtours.entity.Comment;
 import com.sunasterisk.bookingtours.entity.Review;
+import com.sunasterisk.bookingtours.entity.ReviewStatus;
 import com.sunasterisk.bookingtours.entity.ReviewType;
+import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.service.CommentService;
 import com.sunasterisk.bookingtours.service.LikeService;
 import com.sunasterisk.bookingtours.service.ReviewService;
@@ -67,6 +69,13 @@ public class ReviewController {
     @GetMapping("/{id}")
     public String detail(@PathVariable Long id, Authentication authentication, Model model) {
         Review review = reviewService.findById(id);
+
+        // Review chưa PUBLISHED (bị admin ẩn) chỉ hiển thị cho chủ sở hữu hoặc admin.
+        // Trả về 404 thay vì 403 để không tiết lộ sự tồn tại của review bị ẩn.
+        if (review.getStatus() != ReviewStatus.PUBLISHED && !canViewUnpublished(review, authentication)) {
+            throw new ResourceNotFoundException("Review", id);
+        }
+
         model.addAttribute("review", review);
 
         // 9.1: Lấy comment gốc và reply để hiển thị trong template
@@ -174,10 +183,9 @@ public class ReviewController {
             reviewService.update(id, authentication.getName(), reviewRequest);
             redirectAttributes.addFlashAttribute("successMessage", "Review updated successfully!");
         } catch (AccessDeniedException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "You are not allowed to delete this review.");
-            return "reviews/form";
+            redirectAttributes.addFlashAttribute("errorMessage", "You are not allowed to edit this review.");
         } catch (Exception e) {
-            return "reviews/form";
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to update review. Please try again.");
         }
         return "redirect:/reviews/" + id;
     }
@@ -194,9 +202,10 @@ public class ReviewController {
             redirectAttributes.addFlashAttribute("successMessage", "Review deleted.");
         } catch (AccessDeniedException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "You are not allowed to delete this review.");
-            return "reviews/" + id;
+            return "redirect:/reviews/" + id;
         } catch (Exception e) {
-            return "reviews/" + id;
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to delete review. Please try again.");
+            return "redirect:/reviews/" + id;
         }
         return "redirect:/reviews";
     }
@@ -225,7 +234,7 @@ public class ReviewController {
             commentService.addComment(id, authentication.getName(), commentRequest);
             redirectAttributes.addFlashAttribute("successMessage", "Comment added successfully!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to add comment: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to add comment. Please try again.");
         }
         return "redirect:/reviews/" + id;
     }
@@ -253,7 +262,7 @@ public class ReviewController {
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Replies to replies are not allowed.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to add reply: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to add reply. Please try again.");
         }
         return "redirect:/reviews/" + id;
     }
@@ -303,7 +312,21 @@ public class ReviewController {
                     "likesCount", review.getLikesCount()
             ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "Unable to process like. Please try again."));
         }
+    }
+
+    // ----------------------------------------------------------------
+
+    /**
+     * Chủ sở hữu review hoặc admin được xem review chưa PUBLISHED.
+     */
+    private boolean canViewUnpublished(Review review, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        return isAdmin || review.getUser().getEmail().equals(authentication.getName());
     }
 }

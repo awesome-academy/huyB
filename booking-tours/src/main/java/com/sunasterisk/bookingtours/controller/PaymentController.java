@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.controller;
 
 import com.sunasterisk.bookingtours.dto.PaymentRequest;
 import com.sunasterisk.bookingtours.entity.Booking;
+import com.sunasterisk.bookingtours.entity.BookingStatus;
 import com.sunasterisk.bookingtours.entity.Payment;
 import com.sunasterisk.bookingtours.entity.UserBankAccount;
 import com.sunasterisk.bookingtours.service.BankAccountService;
@@ -67,8 +68,7 @@ public class PaymentController {
         }
 
         // Chỉ cho phép thanh toán booking PENDING
-        if (booking.getStatus().name().equals("CANCELLED") || booking.getStatus().name().equals("CONFIRMED")
-                || booking.getStatus().name().equals("COMPLETED")) {
+        if (booking.getStatus() != BookingStatus.PENDING) {
             redirectAttrs.addFlashAttribute("errorMessage",
                     "Payment is only allowed for PENDING bookings.");
             return "redirect:/bookings/" + bookingId;

@@ -20,6 +20,13 @@ public class ProfileUpdateRequest {
     )
     private String phone;
 
+    // Chỉ chấp nhận https URL — chặn javascript:/data: URI được render vào th:src
+    // trên trang profile và trang Admin users. Yêu cầu https (không phải http) để
+    // khớp với CSP img-src ('self' data: https:) — ảnh http sẽ bị browser chặn.
+    @Pattern(
+            regexp = "^$|^https://.+$",
+            message = "Avatar URL must start with https://"
+    )
     @Size(max = 2048, message = "Avatar URL must not exceed 2048 characters")
     private String avatarUrl;
 }

@@ -1,5 +1,7 @@
 package com.sunasterisk.bookingtours.config;
 
+import com.sunasterisk.bookingtours.entity.User;
+import com.sunasterisk.bookingtours.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -19,8 +21,10 @@ import java.util.List;
 /**
  * Chạy một lần mỗi request:
  * 1. Đọc JWT từ HttpOnly cookie
- * 2. Validate token
- * 3. Parse username + role từ claims (không cần query DB)
+ * 2. Validate token (chữ ký + hạn)
+ * 3. Load user từ DB theo subject — kiểm tra tài khoản còn active và lấy role
+ *    HIỆN TẠI (không tin role claim trong token). Nhờ đó lock/unlock và đổi role
+ *    có hiệu lực ngay lập tức thay vì phải chờ token hết hạn.
  * 4. Set Authentication vào SecurityContext
  * <p>
  * KHÔNG đăng ký là @Component để tránh bị Spring Boot
@@ -30,7 +34,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    /**
+     * Static resources không cần Authentication — bỏ qua để tránh
+     * query DB vô ích cho mỗi file css/js/ảnh.
+     */
+    private static final List<String> STATIC_PREFIXES =
+            List.of("/css/", "/js/", "/images/", "/uploads/", "/favicon");
+
     private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
+
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return STATIC_PREFIXES.stream().anyMatch(path::startsWith);
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -45,23 +63,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             String username = jwtUtils.getUsernameFromToken(token);
-            String role = jwtUtils.getRoleFromToken(token);
 
-            // Fallback về ROLE_USER nếu role claim bị thiếu hoặc rỗng
-            if (role == null || role.isBlank()) {
-                role = "ROLE_USER";
+            // Token chỉ chứng minh danh tính — trạng thái tài khoản và role
+            // luôn được đọc lại từ DB tại thời điểm request.
+            User user = userRepository.findByEmailWithRole(username).orElse(null);
+
+            if (user != null && Boolean.TRUE.equals(user.getIsActive())) {
+                String role = (user.getRole() != null)
+                        ? "ROLE_" + user.getRole().getName()
+                        : "ROLE_USER";
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                List.of(new SimpleGrantedAuthority(role)));
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            username,
-                            null,
-                            List.of(new SimpleGrantedAuthority(role)));
-
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request));
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);

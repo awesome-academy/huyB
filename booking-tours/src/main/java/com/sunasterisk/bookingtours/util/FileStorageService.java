@@ -2,15 +2,12 @@ package com.sunasterisk.bookingtours.util;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -25,62 +22,41 @@ import java.util.logging.Logger;
 public class FileStorageService {
 
     /**
-     * Các định dạng ảnh được chấp nhận khi upload thumbnail.
-     */
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
-    );
-
-    /**
      * Thư mục lưu file upload, đọc từ application.properties: {@code app.upload.dir}.
      */
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
     /**
-     * Lưu file upload vào thư mục {@code uploadDir} với tên unique (UUID prefix).
+     * Lưu file upload vào thư mục {@code uploadDir} với tên {@code <UUID>.<ext>}.
+     *
+     * <p>Loại file được xác định bằng magic bytes của nội dung thật — KHÔNG tin
+     * Content-Type header hay đuôi file client gửi lên (cả hai đều giả mạo được;
+     * một file .html khai là image/png sẽ được serve dưới dạng text/html từ
+     * /uploads/ → stored XSS). Tên file gốc bị bỏ hoàn toàn nên không còn
+     * bề mặt path traversal.
      *
      * @param file file cần lưu, không được null và không được rỗng
-     * @return đường dẫn URL tương đối để lưu vào DB, ví dụ {@code /uploads/abc123_photo.jpg}
+     * @return đường dẫn URL tương đối để lưu vào DB, ví dụ {@code /uploads/abc123.jpg}
      * @throws IOException              nếu gặp lỗi I/O khi ghi file
-     * @throws IllegalArgumentException nếu content-type không phải ảnh hợp lệ, hoặc tên file không hợp lệ
+     * @throws IllegalArgumentException nếu nội dung file không phải ảnh JPEG/PNG/GIF/WebP
      */
     public String store(MultipartFile file) throws IOException {
-        // Kiểm tra content-type hợp lệ
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+        byte[] data = file.getBytes();
+
+        String extension = detectImageExtension(data);
+        if (extension == null) {
             throw new IllegalArgumentException(
-                    "Invalid file type. Allowed: JPEG, PNG, GIF, WebP");
+                    "Invalid file content. Allowed: JPEG, PNG, GIF, WebP");
         }
 
-        // Lấy phần tên file thuần (không có directory component) để chống path traversal.
-        // StringUtils.cleanPath một mình không đủ: "uuid_../../../etc/passwd" vẫn escape
-        // khỏi uploadDir khi được resolve(). Path.getFileName() trả về component cuối cùng,
-        // loại bỏ hoàn toàn mọi dấu phân cách thư mục do browser/client gửi lên.
-        String raw = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
-        String safeFilename = Paths.get(StringUtils.cleanPath(raw)).getFileName().toString();
-
-        // Từ chối tên file rỗng hoặc còn chứa ".." sau khi đã làm sạch
-        if (safeFilename.isBlank() || safeFilename.contains("..")) {
-            throw new IllegalArgumentException("Invalid filename: " + raw);
-        }
-
-        // Tạo tên file unique bằng UUID để tránh trùng
-        String storedFilename = UUID.randomUUID() + "_" + safeFilename;
+        String storedFilename = UUID.randomUUID() + "." + extension;
 
         // Tạo thư mục nếu chưa tồn tại
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(uploadPath);
 
-        // Resolve rồi normalize, sau đó kiểm tra containment để đảm bảo file
-        // không bị ghi ra ngoài uploadDir dù có bất kỳ ký tự nào còn sót lại.
-        Path targetPath = uploadPath.resolve(storedFilename).normalize();
-        if (!targetPath.startsWith(uploadPath)) {
-            throw new IllegalArgumentException("Invalid file path detected: " + storedFilename);
-        }
-
-        // Ghi file (ghi đè nếu tình cờ trùng tên — thực tế UUID đảm bảo unique)
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        Files.write(uploadPath.resolve(storedFilename), data);
 
         // Trả về URL tương đối để lưu vào DB
         return "/uploads/" + storedFilename;
@@ -91,7 +67,7 @@ public class FileStorageService {
      * Bỏ qua nếu URL null hoặc không bắt đầu bằng {@code /uploads/}.
      * Kiểm tra containment để đảm bảo chỉ xóa file trong uploadDir.
      *
-     * @param fileUrl URL tương đối, ví dụ {@code /uploads/abc123_photo.jpg}
+     * @param fileUrl URL tương đối, ví dụ {@code /uploads/abc123.jpg}
      */
     public void delete(String fileUrl) {
         if (fileUrl == null || !fileUrl.startsWith("/uploads/")) {
@@ -112,5 +88,36 @@ public class FileStorageService {
             Logger.getLogger(FileStorageService.class.getName())
                     .warning("Failed to delete uploaded file '" + filePath + "': " + e.getMessage());
         }
+    }
+
+    // ----------------------------------------------------------------
+
+    /**
+     * Nhận diện định dạng ảnh qua magic bytes.
+     *
+     * @return đuôi file tương ứng ({@code jpg/png/gif/webp}) hoặc {@code null}
+     *         nếu nội dung không phải một trong các định dạng được hỗ trợ
+     */
+    private String detectImageExtension(byte[] data) {
+        if (data.length >= 3
+                && (data[0] & 0xFF) == 0xFF && (data[1] & 0xFF) == 0xD8 && (data[2] & 0xFF) == 0xFF) {
+            return "jpg";
+        }
+        if (data.length >= 8
+                && (data[0] & 0xFF) == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G'
+                && data[4] == 0x0D && data[5] == 0x0A && data[6] == 0x1A && data[7] == 0x0A) {
+            return "png";
+        }
+        if (data.length >= 6
+                && data[0] == 'G' && data[1] == 'I' && data[2] == 'F' && data[3] == '8'
+                && (data[4] == '7' || data[4] == '9') && data[5] == 'a') {
+            return "gif";
+        }
+        if (data.length >= 12
+                && data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F'
+                && data[8] == 'W' && data[9] == 'E' && data[10] == 'B' && data[11] == 'P') {
+            return "webp";
+        }
+        return null;
     }
 }

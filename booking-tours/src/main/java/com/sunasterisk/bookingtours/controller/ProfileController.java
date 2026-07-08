@@ -51,9 +51,18 @@ public class ProfileController {
             Model model,
             RedirectAttributes redirectAttributes) {
 
-        if (bindingResult.hasErrors()) {
+        User user = userService.getByEmail(authentication.getName());
+
+        // Giá trị avatar cũ (lưu từ trước khi có validation https) có thể không khớp
+        // pattern mới. Form luôn resubmit giá trị đã điền sẵn, nên nếu user chỉ sửa
+        // các field khác mà không đụng avatar, đừng để lỗi avatar-cũ chặn toàn bộ update:
+        // coi như không có lỗi khi TẤT CẢ lỗi đều nằm ở avatarUrl và avatar không đổi.
+        boolean onlyUnchangedAvatarError =
+                java.util.Objects.equals(form.getAvatarUrl(), user.getAvatarUrl())
+                        && bindingResult.getErrorCount() == bindingResult.getFieldErrorCount("avatarUrl");
+
+        if (bindingResult.hasErrors() && !onlyUnchangedAvatarError) {
             // Truyền lại user để hiển thị thông tin hiện tại (email, avatar preview, ...)
-            User user = userService.getByEmail(authentication.getName());
             model.addAttribute("user", user);
             return "profile/profile";
         }
@@ -62,7 +71,7 @@ public class ProfileController {
             userService.updateProfile(authentication.getName(), form);
             redirectAttributes.addFlashAttribute("successMessage", "Profile updated successfully!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Failed to update profile: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to update profile. Please try again.");
         }
 
         return "redirect:/profile";

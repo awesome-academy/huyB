@@ -20,6 +20,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     /**
+     * Tìm user theo email, fetch sẵn Role trong cùng query.
+     * Dùng cho JwtAuthenticationFilter — chạy ngoài transaction nên không thể
+     * truy cập lazy proxy {@code user.role} sau khi query kết thúc.
+     */
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.role WHERE u.email = :email")
+    Optional<User> findByEmailWithRole(@Param("email") String email);
+
+    /**
      * Tìm kiếm user theo keyword (email hoặc full_name) với phân trang.
      * Nếu keyword rỗng / null thì trả về tất cả.
      * <p>
