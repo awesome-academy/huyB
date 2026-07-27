@@ -35,7 +35,27 @@ build/
 ### Secrets — never commit credentials ###
 # .env chứa credentials local, KHÔNG commit
 .env
+.env.*
+*.jks
+*.p12
+*.keystore
 
 ### Runtime data ###
 # File user upload lúc chạy app — không phải source code
 uploads/
+
+### Claude Code / Takumi — machine-local, auto-generated ###
+.claude/
+release-manifest.json
+.repomixignore
+
+### Logs ###
+logs/
+*.log
+*.log.*
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
