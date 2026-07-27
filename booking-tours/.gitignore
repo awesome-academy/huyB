@@ -35,3 +35,7 @@ build/
 ### Secrets — never commit credentials ###
 # .env chứa credentials local, KHÔNG commit
 .env
+
+### Runtime data ###
+# File user upload lúc chạy app — không phải source code
+uploads/

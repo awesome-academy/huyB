@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -27,6 +28,30 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     @Query("SELECT COALESCE(SUM(b.totalPrice), 0) FROM Booking b WHERE b.status = :status")
     BigDecimal sumTotalPriceByStatus(@Param("status") BookingStatus status);
+
+    /**
+     * Đếm số booking được tạo trong khoảng thời gian (dùng cho thống kê booking hôm nay).
+     *
+     * @param from thời điểm bắt đầu (00:00:00 của ngày)
+     * @param to   thời điểm kết thúc (23:59:59 của ngày)
+     * @return số lượng booking trong khoảng thời gian đó
+     */
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.createdAt BETWEEN :from AND :to")
+    long countBookingsBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
+     * Tính tổng doanh thu (total_price) của các booking CONFIRMED được tạo trong tháng.
+     *
+     * @param from   thời điểm đầu tháng
+     * @param to     thời điểm cuối tháng
+     * @param status trạng thái booking cần tính (truyền {@link BookingStatus#CONFIRMED})
+     * @return tổng doanh thu, trả về 0 nếu không có booking nào
+     */
+    @Query("SELECT COALESCE(SUM(b.totalPrice), 0) FROM Booking b " +
+            "WHERE b.status = :status AND b.createdAt BETWEEN :from AND :to")
+    BigDecimal sumRevenueByStatusBetween(@Param("status") BookingStatus status,
+                                         @Param("from") LocalDateTime from,
+                                         @Param("to") LocalDateTime to);
 
     /**
      * Kiểm tra mã booking đã tồn tại chưa (dùng khi generate booking_code).

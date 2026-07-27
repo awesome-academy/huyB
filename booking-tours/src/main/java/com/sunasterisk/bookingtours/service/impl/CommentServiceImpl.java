@@ -3,6 +3,7 @@ package com.sunasterisk.bookingtours.service.impl;
 import com.sunasterisk.bookingtours.dto.CommentRequest;
 import com.sunasterisk.bookingtours.entity.Comment;
 import com.sunasterisk.bookingtours.entity.Review;
+import com.sunasterisk.bookingtours.entity.ReviewStatus;
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.repository.CommentRepository;
@@ -49,8 +50,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public Comment addComment(Long reviewId, String email, CommentRequest request) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+        Review review = requirePublishedReview(reviewId);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
@@ -67,8 +67,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public Comment addReply(Long reviewId, Long parentId, String email, CommentRequest request) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+        Review review = requirePublishedReview(reviewId);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
@@ -109,5 +108,18 @@ public class CommentServiceImpl implements CommentService {
         // Soft delete — không xóa bản ghi khỏi DB
         comment.setDeleted(true);
         commentRepository.save(comment);
+    }
+
+    /**
+     * Lấy review và đảm bảo nó đang PUBLISHED — chặn thêm comment/reply vào review
+     * bị admin ẩn. Ném 404 (thay vì 403) để không tiết lộ sự tồn tại của review ẩn.
+     */
+    private Review requirePublishedReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+        if (review.getStatus() != ReviewStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Review", reviewId);
+        }
+        return review;
     }
 }

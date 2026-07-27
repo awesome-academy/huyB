@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.service.impl;
 
 import com.sunasterisk.bookingtours.entity.Like;
 import com.sunasterisk.bookingtours.entity.Review;
+import com.sunasterisk.bookingtours.entity.ReviewStatus;
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.repository.LikeRepository;
@@ -29,6 +30,11 @@ public class LikeServiceImpl implements LikeService {
     public boolean toggleLike(Long reviewId, String email) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+        // Không cho like review chưa PUBLISHED (bị admin ẩn). Ném 404 thay vì 403
+        // để không xác nhận sự tồn tại của review bị ẩn.
+        if (review.getStatus() != ReviewStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Review", reviewId);
+        }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 

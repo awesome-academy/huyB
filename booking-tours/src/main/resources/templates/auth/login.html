@@ -20,6 +20,12 @@
                         Invalid email or password.
                     </div>
 
+                    <!-- Login blocked (too many failed attempts) -->
+                    <div th:if="${loginBlocked}" class="alert alert-danger" role="alert">
+                        <i class="bi bi-shield-lock-fill me-2"></i>
+                        <span th:text="${errorMessage}">Too many failed login attempts. Please try again later.</span>
+                    </div>
+
                     <!-- Login error from ?error param (fallback) -->
                     <div th:if="${param.error}" class="alert alert-danger" role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>

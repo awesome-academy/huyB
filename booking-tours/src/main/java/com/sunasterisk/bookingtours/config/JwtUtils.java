@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -110,15 +109,14 @@ public class JwtUtils {
     // Token helpers
     // ----------------------------------------------------------------
 
+    /**
+     * Token chỉ mang danh tính (subject = email). KHÔNG nhúng role vào token:
+     * role và trạng thái tài khoản được đọc lại từ DB ở mỗi request
+     * (JwtAuthenticationFilter) để lock/đổi role có hiệu lực ngay lập tức.
+     */
     public String generateToken(Authentication authentication) {
-        String role = authentication.getAuthorities().stream()
-                .findFirst()
-                .map(GrantedAuthority::getAuthority)
-                .orElse("ROLE_USER");
-
         return Jwts.builder()
                 .subject(authentication.getName())
-                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSigningKey())
@@ -127,10 +125,6 @@ public class JwtUtils {
 
     public String getUsernameFromToken(String token) {
         return parseClaims(token).getSubject();
-    }
-
-    public String getRoleFromToken(String token) {
-        return parseClaims(token).get("role", String.class);
     }
 
     public boolean validateToken(String token) {

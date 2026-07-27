@@ -10,6 +10,7 @@ import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -77,7 +78,15 @@ public class PaymentServiceImpl implements PaymentService {
                 .status(PaymentStatus.PENDING)
                 .build();
 
-        return paymentRepository.save(payment);
+        try {
+            // saveAndFlush để unique constraint (uq_payments_booking_id) được
+            // kiểm tra ngay tại đây — bắt được race mà check ở bước 5 bỏ lọt
+            // khi hai request cùng submit payment cho một booking.
+            return paymentRepository.saveAndFlush(payment);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalStateException(
+                    "This booking already has a payment record. Please wait for admin confirmation.");
+        }
     }
 
     /**
