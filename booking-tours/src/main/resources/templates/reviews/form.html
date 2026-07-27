@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          pageTitle=${formMode == 'EDIT' ? 'Edit Review' : 'Write Review'},
+          content=~{::pageContent},
+          extraHead=~{},
+          extraScripts=~{})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/}" class="text-decoration-none"><i class="bi bi-house me-1"></i>Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/reviews}" class="text-decoration-none">Reviews</a>
+            </li>
+            <li class="breadcrumb-item active"
+                th:text="${formMode == 'EDIT' ? 'Edit Review' : 'Write Review'}">Form</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white fw-semibold py-3">
+                    <i th:class="${formMode == 'EDIT' ? 'bi bi-pencil-square' : 'bi bi-journal-plus'}"
+                       class="me-2"></i>
+                    <span th:text="${formMode == 'EDIT' ? 'Edit Review' : 'Write a New Review'}">Form</span>
+                </div>
+                <div class="card-body p-4">
+
+                    <form th:if="${formMode == 'CREATE'}"
+                          th:action="@{/reviews}"
+                          th:object="${reviewRequest}"
+                          method="post">
+
+                        <!-- Type -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-tag me-1 text-primary"></i>Review Type <span class="text-danger">*</span>
+                            </label>
+                            <select th:field="*{reviewType}"
+                                    class="form-select"
+                                    th:classappend="${#fields.hasErrors('reviewType')} ? 'is-invalid'">
+                                <option value="">— Select type —</option>
+                                <option th:each="t : ${reviewTypes}"
+                                        th:value="${t.name()}"
+                                        th:text="${t.name()}">TYPE</option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('reviewType')}"
+                                 th:errors="*{reviewType}"></div>
+                        </div>
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-pencil me-1 text-primary"></i>Title <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   th:field="*{title}"
+                                   class="form-control"
+                                   th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                                   placeholder="Enter review title…"/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}"
+                                 th:errors="*{title}"></div>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-file-text me-1 text-primary"></i>Content <span class="text-danger">*</span>
+                            </label>
+                            <textarea th:field="*{content}"
+                                      class="form-control"
+                                      th:classappend="${#fields.hasErrors('content')} ? 'is-invalid'"
+                                      rows="10"
+                                      placeholder="Share your experience…"></textarea>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('content')}"
+                                 th:errors="*{content}"></div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-send me-1"></i>Post Review
+                            </button>
+                            <a th:href="@{/reviews}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+
+                    <!-- Edit form -->
+                    <form th:if="${formMode == 'EDIT'}"
+                          th:action="@{/reviews/{id}/edit(id=${review.id})}"
+                          th:object="${reviewRequest}"
+                          method="post">
+
+                        <!-- Type -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-tag me-1 text-primary"></i>Review Type <span class="text-danger">*</span>
+                            </label>
+                            <select th:field="*{reviewType}"
+                                    class="form-select"
+                                    th:classappend="${#fields.hasErrors('reviewType')} ? 'is-invalid'">
+                                <option value="">— Select type —</option>
+                                <option th:each="t : ${reviewTypes}"
+                                        th:value="${t.name()}"
+                                        th:text="${t.name()}">TYPE</option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('reviewType')}"
+                                 th:errors="*{reviewType}"></div>
+                        </div>
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-pencil me-1 text-primary"></i>Title <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   th:field="*{title}"
+                                   class="form-control"
+                                   th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                                   placeholder="Enter review title…"/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}"
+                                 th:errors="*{title}"></div>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-file-text me-1 text-primary"></i>Content <span class="text-danger">*</span>
+                            </label>
+                            <textarea th:field="*{content}"
+                                      class="form-control"
+                                      th:classappend="${#fields.hasErrors('content')} ? 'is-invalid'"
+                                      rows="10"
+                                      placeholder="Share your experience…"></textarea>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('content')}"
+                                 th:errors="*{content}"></div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-1"></i>Save Changes
+                            </button>
+                            <a th:href="@{/reviews/{id}(id=${review.id})}"
+                               class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</th:block>
+</body>
+</html>

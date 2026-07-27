@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle='Review Management', content=~{::pageContent}, extraHead=~{}, extraScripts=~{::extraScripts})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-journal-text me-2 text-danger"></i>Review Management
+        </h3>
+        <a th:href="@{/admin}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Stats row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                         style="width:44px;height:44px;flex-shrink:0">
+                        <i class="bi bi-check-circle text-success fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Published</div>
+                        <div class="fw-bold fs-5" th:text="${totalPublished}">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
+                         style="width:44px;height:44px;flex-shrink:0">
+                        <i class="bi bi-eye-slash text-danger fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Hidden</div>
+                        <div class="fw-bold fs-5" th:text="${totalHidden}">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form th:action="@{/admin/reviews}" method="get" class="row g-2 align-items-end">
+                <!-- Type filter -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold mb-1">Type</label>
+                    <select name="reviewType" class="form-select">
+                        <option value="">All types</option>
+                        <option th:each="t : ${reviewTypes}"
+                                th:value="${t.name()}"
+                                th:text="${t.name()}"
+                                th:selected="${reviewType != null and reviewType.name() == t.name()}">TYPE</option>
+                    </select>
+                </div>
+                <!-- Buttons -->
+                <div class="col-12 col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-3">
+                        <i class="bi bi-funnel me-1"></i>Filter
+                    </button>
+                    <a th:href="@{/admin/reviews}" class="btn btn-outline-secondary px-3">
+                        <i class="bi bi-x-circle me-1"></i>Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">
+                Total: <strong th:text="${reviewPage.totalElements}">0</strong> review(s)
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:50px">#</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th class="text-center">Type</th>
+                        <th class="text-center">Status</th>
+                        <th>Created At</th>
+                        <th class="text-center" style="width:160px">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    <!-- Empty state -->
+                    <tr th:if="${reviewPage.empty}">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            No reviews found.
+                        </td>
+                    </tr>
+
+                    <tr th:each="review, stat : ${reviewPage.content}">
+
+                        <!-- Row number -->
+                        <td class="ps-3 text-muted small"
+                            th:text="${reviewPage.number * reviewPage.size + stat.index + 1}">1</td>
+
+                        <!-- Title -->
+                        <td>
+                            <a th:href="@{/reviews/{id}(id=${review.id})}"
+                               class="fw-semibold text-decoration-none"
+                               target="_blank"
+                               th:text="${#strings.length(review.title) > 60 ? #strings.substring(review.title, 0, 60) + '…' : review.title}">
+                                Title
+                            </a>
+                        </td>
+
+                        <!-- Author -->
+                        <td>
+                            <span th:if="${review.user != null}">
+                                <span class="d-block small fw-semibold"
+                                      th:text="${review.user.fullName}">Name</span>
+                                <small class="text-muted" th:text="${review.user.email}">email</small>
+                            </span>
+                            <span th:if="${review.user == null}" class="text-muted small">Deleted user</span>
+                        </td>
+
+                        <!-- Type -->
+                        <td class="text-center">
+                            <span th:switch="${review.type?.name()}">
+                                <span th:case="'PLACE'" class="badge bg-success">PLACE</span>
+                                <span th:case="'FOOD'"  class="badge bg-warning text-dark">FOOD</span>
+                                <span th:case="'NEWS'"  class="badge bg-info text-dark">NEWS</span>
+                                <span th:case="*"       class="badge bg-secondary">—</span>
+                            </span>
+                        </td>
+
+                        <!-- Status -->
+                        <td class="text-center">
+                            <span th:switch="${review.status?.name()}">
+                                <span th:case="'PUBLISHED'" class="badge bg-success">PUBLISHED</span>
+                                <span th:case="'HIDDEN'"    class="badge bg-danger">HIDDEN</span>
+                                <span th:case="*"           class="badge bg-secondary">—</span>
+                            </span>
+                        </td>
+
+                        <!-- Created at -->
+                        <td class="small text-muted"
+                            th:text="${review.createdAt != null ? #temporals.format(review.createdAt, 'dd/MM/yyyy HH:mm') : '—'}">—</td>
+
+                        <!-- Actions -->
+                        <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+
+                                <!-- View -->
+                                <a th:href="@{/reviews/{id}(id=${review.id})}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-outline-secondary"
+                                   title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+
+                                <!-- Hide (only if PUBLISHED) -->
+                                <form th:if="${review.status?.name() == 'PUBLISHED'}"
+                                      th:action="@{/admin/reviews/{id}/hide(id=${review.id})}"
+                                      method="post"
+                                      onsubmit="return confirm('Hide this review?')">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-warning text-dark"
+                                            title="Hide">
+                                        <i class="bi bi-eye-slash"></i>
+                                    </button>
+                                </form>
+
+                                <!-- Restore (only if HIDDEN) -->
+                                <form th:if="${review.status?.name() == 'HIDDEN'}"
+                                      th:action="@{/admin/reviews/{id}/restore(id=${review.id})}"
+                                      method="post"
+                                      onsubmit="return confirm('Restore this review?')">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-success"
+                                            title="Restore">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </form>
+
+                                <!-- Delete -->
+                                <form th:action="@{/admin/reviews/{id}/delete(id=${review.id})}"
+                                      method="post"
+                                      onsubmit="return confirm('Permanently delete this review? This cannot be undone.')">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <th:block th:replace="~{layout/pagination :: paginate(
+            ${pageNumbers}, ${currentPage}, ${totalPages},
+            '/admin/reviews', '')}"/>
+    </div>
+
+</th:block>
+
+<th:block th:fragment="extraScripts">
+    <script>
+        // Confirm dialogs already inline; placeholder for future enhancements
+    </script>
+</th:block>
+</body>
+</html>
