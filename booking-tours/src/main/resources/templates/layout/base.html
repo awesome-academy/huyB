@@ -17,6 +17,10 @@
     <!-- Custom CSS -->
     <link th:href="@{/css/style.css}" rel="stylesheet"/>
 
+    <!-- CSRF meta tags cho AJAX requests (9.3 like toggle) -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
     <!-- Page-specific head (optional override) -->
     <th:block th:replace="${extraHead} ?: ~{}"/>
 </head>
