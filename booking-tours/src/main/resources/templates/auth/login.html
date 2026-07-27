@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle='Login', content=~{::loginContent}, extraHead=~{}, extraScripts=~{})}">
+<body>
+<th:block th:fragment="loginContent">
+    <div class="row justify-content-center">
+        <div class="col-md-5 col-lg-4">
+
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body p-4">
+
+                    <h4 class="card-title text-center mb-4 fw-bold">
+                        <i class="bi bi-box-arrow-in-right me-2 text-primary"></i>Login
+                    </h4>
+
+                    <!-- Login error (wrong credentials) -->
+                    <div th:if="${loginError}" class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Invalid email or password.
+                    </div>
+
+                    <!-- Login error from ?error param (fallback) -->
+                    <div th:if="${param.error}" class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Invalid email or password.
+                    </div>
+
+                    <!-- Register success -->
+                    <div th:if="${param.registered}" class="alert alert-success" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Registration successful! Please log in.
+                    </div>
+
+                    <!-- Logout success -->
+                    <div th:if="${param.logout}" class="alert alert-success" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        You have been logged out successfully.
+                    </div>
+
+                    <form th:action="@{/auth/login}" th:object="${loginRequest}" method="post" novalidate>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold">Email address</label>
+                            <input type="email"
+                                   id="email"
+                                   th:field="*{email}"
+                                   class="form-control"
+                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'"
+                                   placeholder="you@example.com"
+                                   autofocus
+                                   required/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}"
+                                 th:errors="*{email}"></div>
+                        </div>
+
+                        <!-- Password -->
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-semibold">Password</label>
+                            <div class="input-group">
+                                <input type="password"
+                                       id="password"
+                                       th:field="*{password}"
+                                       class="form-control"
+                                       th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'"
+                                       placeholder="Your password"
+                                       required/>
+                                <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePassword('password', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}"
+                                     th:errors="*{password}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                            </button>
+                        </div>
+
+                        <!-- OAuth2 Google -->
+                        <div class="d-grid">
+                            <a th:href="@{/oauth2/authorization/google}"
+                               class="btn btn-outline-danger btn-lg">
+                                <i class="bi bi-google me-2"></i>Continue with Google
+                            </a>
+                        </div>
+
+                    </form>
+
+                    <hr class="my-4"/>
+
+                    <p class="text-center mb-0">
+                        Don't have an account?
+                        <a th:href="@{/auth/register}"
+                           class="text-primary fw-semibold text-decoration-none">Register</a>
+                    </p>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</th:block>
+</body>
+</html>
