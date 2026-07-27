@@ -1,9 +1,9 @@
 -- ----------------------------------------------------------------
 -- Reviews mẫu (10 bài — mix đủ type, status)
 -- user_id tham chiếu users đã có trong hệ thống.
--- ON CONFLICT DO NOTHING → an toàn khi chạy lại migration.
+-- INSERT IGNORE → an toàn khi chạy lại migration.
 -- ----------------------------------------------------------------
-INSERT INTO reviews (user_id, type, title, content, status, likes_count, created_at, updated_at)
+INSERT IGNORE INTO reviews (user_id, type, title, content, status, likes_count, created_at, updated_at)
 VALUES
     (
         2, 'PLACE',
@@ -94,5 +94,4 @@ VALUES
             'Huế từ tháng 9 nên theo dõi sát thông tin thời tiết và liên hệ đơn vị lữ hành '
             'để điều chỉnh lịch trình kịp thời.',
         'HIDDEN', 11, '2026-05-25 08:00:00', '2026-05-25 08:00:00'
-    )
-    ON CONFLICT DO NOTHING;
+    );

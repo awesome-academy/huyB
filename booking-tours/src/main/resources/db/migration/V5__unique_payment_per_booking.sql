@@ -8,10 +8,10 @@
 -- ================================================================
 
 -- Dọn duplicate nếu đã tồn tại (giữ payment cũ nhất theo id)
-DELETE FROM payments p
-USING payments p2
-WHERE p.booking_id = p2.booking_id
-  AND p.id > p2.id;
+DELETE p FROM payments p
+INNER JOIN payments p2
+    ON p.booking_id = p2.booking_id
+   AND p.id > p2.id;
 
 ALTER TABLE payments
     ADD CONSTRAINT uq_payments_booking_id UNIQUE (booking_id);

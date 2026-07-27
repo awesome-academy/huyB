@@ -1,9 +1,9 @@
 -- ----------------------------------------------------------------
 -- Tours mẫu (10 tour — mix đủ category, status, avg_rating)
 -- category_id tham chiếu theo name để tránh hardcode id.
--- ON CONFLICT DO NOTHING → an toàn khi chạy lại migration.
+-- INSERT IGNORE → an toàn khi chạy lại migration.
 -- ----------------------------------------------------------------
-INSERT INTO tours (title, description, price, duration_days, max_participants,
+INSERT IGNORE INTO tours (title, description, price, duration_days, max_participants,
                    departure_location, destination, departure_date,
                    thumbnail_url, category_id, status, avg_rating)
 VALUES
@@ -106,5 +106,4 @@ VALUES
         'Hồ Chí Minh', 'Phan Thiết – Mũi Né, Bình Thuận',
         '2026-09-12', NULL,
         (SELECT id FROM categories WHERE name = 'Du lịch mạo hiểm'), 'INACTIVE', 4.1
-    )
-    ON CONFLICT DO NOTHING;
+    );
