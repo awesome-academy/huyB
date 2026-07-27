@@ -110,6 +110,23 @@
                 </div>
             </div>
 
+            <!-- Quick links card -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-light fw-semibold">
+                    <i class="bi bi-grid me-2 text-secondary"></i>Quick Links
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a th:href="@{/profile/bank-accounts}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-bank me-2"></i>Manage Bank Accounts
+                        </a>
+                        <a th:href="@{/bookings}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-calendar-check me-2"></i>Booking History
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Read-only info card -->
             <div class="card shadow-sm border-0 mt-4">
                 <div class="card-header bg-light fw-semibold">

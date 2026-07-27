@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle=${editMode} ? 'Edit Category' : 'New Category', content=~{::pageContent}, extraHead=~{}, extraScripts=~{})}">
+<body>
+<th:block th:fragment="pageContent">
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-tags-fill me-2 text-success"></i>
+            <span th:text="${editMode} ? 'Edit Category' : 'New Category'">Category Form</span>
+        </h3>
+        <a th:href="@{/admin/categories}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Categories
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+
+                    <!-- Inline error from service (e.g. duplicate name) -->
+                    <div th:if="${errorMessage}"
+                         class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!-- POST to /{id} for edit, or to /admin/categories for create -->
+                    <form th:action="${editMode} ? @{/admin/categories/{id}(id=${categoryId})} : @{/admin/categories}"
+                          th:object="${categoryRequest}"
+                          method="post"
+                          novalidate>
+
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-semibold">
+                                Category Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   id="name"
+                                   th:field="*{name}"
+                                   th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''"
+                                   class="form-control"
+                                   placeholder="e.g. Beach, Mountain, City Tour…"
+                                   maxlength="100"
+                                   autofocus/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}"
+                                 th:errors="*{name}">Name error</div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label fw-semibold">
+                                Description
+                                <span class="text-muted fw-normal small">(optional)</span>
+                            </label>
+                            <textarea id="description"
+                                      th:field="*{description}"
+                                      th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''"
+                                      class="form-control"
+                                      rows="4"
+                                      placeholder="Brief description of the category…"
+                                      maxlength="1000"></textarea>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}"
+                                 th:errors="*{description}">Description error</div>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="bi bi-check-circle me-1"></i>
+                                <span th:text="${editMode} ? 'Update' : 'Create'">Save</span>
+                            </button>
+                            <a th:href="@{/admin/categories}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

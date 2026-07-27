@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{layout/base :: layout(pageTitle='User Management', content=~{::pageContent}, extraHead=~{}, extraScripts=~{::extraScripts})}">
+<body>
+<th:block th:fragment="pageContent">
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-people-fill me-2 text-primary"></i>User Management
+        </h3>
+        <a th:href="@{/admin}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+    <!-- Search form -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form th:action="@{/admin/users}" method="get" class="d-flex gap-2">
+                <input type="text"
+                       name="keyword"
+                       class="form-control"
+                       placeholder="Search by email or full name…"
+                       th:value="${keyword}"/>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+                <a th:href="@{/admin/users}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </a>
+            </form>
+        </div>
+    </div>
+    <!-- Users table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">
+                Total: <strong th:text="${userPage.totalElements}">0</strong> users
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:60px">#</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Created At</th>
+                        <th class="text-center" style="width:130px">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${userPage.empty}">
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            No users found.
+                        </td>
+                    </tr>
+                    <tr th:each="u, stat : ${userPage.content}">
+                        <td class="ps-3 text-muted small"
+                            th:text="${userPage.number * userPage.size + stat.index + 1}">1
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Avatar placeholder -->
+                                <span th:if="${u.avatarUrl == null}"
+                                      class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+                                      style="width:36px;height:36px;font-size:.85rem;font-weight:600"
+                                      th:text="${#strings.substring(u.fullName, 0, 1).toUpperCase()}">U</span>
+                                <img th:if="${u.avatarUrl != null}"
+                                     th:src="${u.avatarUrl}"
+                                     class="rounded-circle object-fit-cover"
+                                     style="width:36px;height:36px;object-fit:cover"
+                                     alt="avatar"/>
+                                <span th:text="${u.fullName}">Full Name</span>
+                            </div>
+                        </td>
+                        <td th:text="${u.email}">email@example.com</td>
+                        <td th:text="${u.phone != null ? u.phone : '—'}">—</td>
+                        <td>
+                            <span th:if="${u.role != null}"
+                                  th:class="${u.role.name == 'ADMIN'} ? 'badge bg-danger' : 'badge bg-secondary'"
+                                  th:text="${u.role.name == 'ADMIN' ? 'Admin' : 'User'}">User</span>
+                            <span th:if="${u.role == null}" class="badge bg-light text-muted">—</span>
+                        </td>
+                        <td class="text-center">
+                            <span th:if="${u.isActive}"
+                                  class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </span>
+                            <span th:unless="${u.isActive}"
+                                  class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">
+                                <i class="bi bi-lock me-1"></i>Locked
+                            </span>
+                        </td>
+                        <td class="text-center text-muted small"
+                            th:text="${#temporals.format(u.createdAt, 'MM/dd/yyyy')}">01/01/2026
+                        </td>
+                        <td class="text-center">
+                            <form th:action="@{/admin/users/{id}/toggle-lock(id=${u.id})}"
+                                  method="post"
+                                  th:with="currentEmail=${#authentication.name}"
+                                  onsubmit="return confirmToggle(this)">
+                                <input type="hidden" name="keyword" th:value="${keyword}"/>
+                                <input type="hidden" name="page" th:value="${currentPage}"/>
+                                <button type="submit"
+                                        th:class="${u.isActive} ? 'btn btn-sm btn-outline-danger' : 'btn btn-sm btn-outline-success'"
+                                        th:title="${u.isActive} ? 'Lock account' : 'Unlock account'">
+                                    <i th:class="${u.isActive} ? 'bi bi-lock' : 'bi bi-unlock'"></i>
+                                    <span th:text="${u.isActive} ? 'Lock' : 'Unlock'">Lock</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Pagination -->
+        <th:block th:replace="~{layout/pagination :: paginate(
+            ${pageNumbers}, ${currentPage}, ${totalPages},
+            '/admin/users', ${keyword})}"/>
+    </div>
+</th:block>
+<!-- Script for lock/unlock confirmation -->
+<th:block th:fragment="extraScripts">
+    <script th:inline="javascript">
+        function confirmToggle(form) {
+            const btn = form.querySelector('button[type=submit]');
+            const isLocking = btn.textContent.trim().startsWith('Lock');
+            const action = isLocking ? 'lock' : 'unlock';
+            return confirm('Are you sure you want to ' + action + ' this account?');
+        }
+    </script>
+</th:block>
+</body>
+</html>
