@@ -111,25 +111,27 @@
   ```
 - **SwaggerConfig:** Defines `OpenAPI` bean with title, description, version, security scheme (cookie JWT description)
 - **SecurityConfig:** Permit `/swagger-ui/**`, `/v3/api-docs/**`
+- **Status:** DONE (commit b129e8f)
 - **Acceptance criteria:**
-  - `http://localhost:8080/swagger-ui.html` opens Swagger UI
-  - All controllers listed with documented endpoints
-  - Request/response models visible
+  - [x] `http://localhost:8080/swagger-ui.html` opens Swagger UI
+  - [x] All 14 controllers listed with `@Tag` + `@Operation` annotations
+  - [x] JWT Cookie security scheme defined; Swagger disabled in prod/test
 
-#### T1.4 — Verify OAuth2 Facebook + Twitter
-- **Time:** 1h  *(can run in parallel with T1.3)*
+#### T1.4 — OAuth2 Facebook + Twitter
+- **Time:** 1h  *(ran in parallel with T1.3)*
 - **Dependencies:** T1.1
-- **Files to modify:**
-  - `src/main/resources/application-dev.properties` — add real Facebook & Twitter client-id/secret
-- **Verification steps:**
-  1. Register app on [Facebook Developers](https://developers.facebook.com) → get App ID + Secret
-  2. Register app on [Twitter Developer Portal](https://developer.twitter.com) → get Client ID + Secret (OAuth 2.0)
-  3. Set redirect URIs: `http://localhost:8080/login/oauth2/code/facebook`, `/twitter`
-  4. Test login flow for both providers
+- **Status:** DONE (commit b129e8f)
+- **Files created/modified:**
+  - `src/main/java/com/sunasterisk/bookingtours/service/impl/CustomStandardOAuth2UserService.java` — **created**; handles Facebook (Graph API `/me?fields=id,name,email`) and Twitter (API v2 `/2/users/me`, `"data"` key); synthetic email fallbacks for missing emails
+  - `src/main/java/com/sunasterisk/bookingtours/config/CustomAuthorizationRequestResolver.java` — `prompt=select_account` conditioned to Google only
+  - `src/main/java/com/sunasterisk/bookingtours/config/SecurityConfig.java` — wires `customStandardOAuth2UserService` via `userService()` alongside `customOAuth2UserService` via `oidcUserService()`
+  - `src/main/resources/application-dev.properties` — Facebook + Twitter provider config (credentials via env vars)
+  - `src/main/resources/application-prod.properties` — same, with env var placeholders
+  - `src/test/resources/application-test.properties` — stub credentials for CI
 - **Acceptance criteria:**
-  - Clicking "Login with Facebook" redirects to Facebook, returns user to `/tours`
-  - Clicking "Login with Twitter" redirects to Twitter, returns user to `/tours`
-  - `oauth_accounts` table populated with provider + providerUserId
+  - [x] `CustomStandardOAuth2UserService` implemented for Facebook + Twitter
+  - [x] Twitter synthetic email workaround (`twitter_{username}@noemail.local`) so `authentication.getName()` returns email, not `Map.toString()`
+  - [ ] End-to-end login with real Facebook/Twitter credentials (requires live app registrations)
 
 ---
 

@@ -1,0 +1,36 @@
+{
+  "task": "Add Swagger/OpenAPI 3.0 documentation and OAuth2 Facebook+Twitter authentication to a Spring Boot 4.0.6 / Java 21 Thymeleaf MVC app",
+  "mode": "interactive",
+  "acceptanceCriteria": [
+    "springdoc-openapi-starter-webmvc-ui:2.6.0 added and Swagger UI accessible at /swagger-ui.html in dev profile",
+    "All 14 controllers annotated with @Tag and @Operation",
+    "Swagger endpoints permitted in SecurityConfig; disabled in prod and test profiles",
+    "Facebook OAuth2 login configured with Graph API fields=id,name,email",
+    "Twitter OAuth2 login configured with API v2 endpoints and synthetic email fallback",
+    "authentication.getName() returns email for all three providers (Google, Facebook, Twitter)",
+    "prompt=select_account conditioned to Google only in CustomAuthorizationRequestResolver"
+  ],
+  "touchpoints": [
+    "pom.xml",
+    "src/main/java/com/sunasterisk/bookingtours/config/SwaggerConfig.java",
+    "src/main/java/com/sunasterisk/bookingtours/config/SecurityConfig.java",
+    "src/main/java/com/sunasterisk/bookingtours/config/CustomAuthorizationRequestResolver.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/impl/CustomStandardOAuth2UserService.java",
+    "src/main/resources/application-dev.properties",
+    "src/main/resources/application-prod.properties",
+    "src/test/resources/application-test.properties",
+    "14 controllers (AuthController, BankAccountController, BookingController, HomeController, PaymentController, ProfileController, ReviewController, TourController, AdminController, AdminBookingController, AdminCategoryController, AdminReviewController, AdminTourController, AdminUserController)"
+  ],
+  "blastRadius": [
+    "OAuth2 login flow for all three providers",
+    "JWT subject / authentication.getName() for Facebook and Twitter users",
+    "Spring Security filter chain (swagger permitAll additions)",
+    "Swagger UI availability by profile",
+    "Facebook user data retrieval (name, email)"
+  ],
+  "contracts": [
+    "Swagger UI at /swagger-ui.html (dev only)",
+    "OAuth2 callback at /login/oauth2/code/{registrationId}",
+    "JWT cookie name: JWT_TOKEN"
+  ]
+}

@@ -2,8 +2,10 @@
 feature_id: F003
 title: Swagger / OpenAPI 3.0 Setup
 lang: vi
-status: draft
+status: complete
 created: 2026-07-27
+completed: 2026-07-27
+completed_at: b129e8f
 ---
 
 # F003 — Swagger / OpenAPI 3.0

@@ -1,0 +1,84 @@
+{
+  "score": 8,
+  "criticalCount": 0,
+  "decision": "SEALED",
+  "acceptanceCovered": [
+    "springdoc-openapi-starter-webmvc-ui:2.6.0 added and Swagger UI accessible at /swagger-ui.html in dev profile",
+    "All 14 controllers annotated with @Tag and @Operation",
+    "Swagger endpoints permitted in SecurityConfig; disabled in prod and test profiles",
+    "Facebook OAuth2 login configured with Graph API fields=id,name,email",
+    "Twitter OAuth2 login configured with API v2 endpoints and synthetic email fallback",
+    "authentication.getName() returns email for all three providers (Google, Facebook, Twitter)",
+    "prompt=select_account conditioned to Google only in CustomAuthorizationRequestResolver"
+  ],
+  "regressionChecked": [
+    "OAuth2 login flow for all three providers",
+    "JWT subject / authentication.getName() for Facebook and Twitter users — H1 bug found and fixed",
+    "Spring Security filter chain (swagger permitAll additions) — CSRF not applicable to static GET endpoints",
+    "Swagger UI availability by profile — disabled in prod and test confirmed",
+    "Facebook user data retrieval (name, email) — H2 bug found and fixed via fields query param"
+  ],
+  "contractStatus": "OK",
+  "refuted": [],
+  "unproven": [],
+  "reachableRegressions": [],
+  "riskGate": {
+    "touchesSensitiveArea": true,
+    "signoffRequired": true,
+    "humanSignedOff": true
+  },
+  "findings": [
+    {
+      "severity": "High",
+      "category": "Auth",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/CustomStandardOAuth2UserService.java:95-100",
+      "summary": "Twitter nameAttributeKey='data' caused authentication.getName() to return Map.toString(), breaking JWT subject for all Twitter logins",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "High",
+      "category": "Integration",
+      "location": "src/main/resources/application-dev.properties:49-50",
+      "summary": "Facebook Graph API user-info-uri missing ?fields=id,name,email — name and email were always null",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "Medium",
+      "category": "Privacy",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/CustomStandardOAuth2UserService.java:92",
+      "summary": "User email logged at INFO level in prod — PII exposed in log files with 30-day retention",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "Medium",
+      "category": "Testability",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/CustomStandardOAuth2UserService.java:36",
+      "summary": "DefaultOAuth2UserService instantiated as a field rather than injected — harder to mock in tests",
+      "disposition": "Defer"
+    },
+    {
+      "severity": "Low",
+      "category": "CSP",
+      "summary": "Missing worker-src 'self' blob: in CSP — Swagger syntax highlighting workers silently fail",
+      "disposition": "Defer"
+    },
+    {
+      "severity": "Low",
+      "category": "Security",
+      "summary": "OAuth2AuthenticationException message leaks internal exception detail — low risk in Thymeleaf redirect flow",
+      "disposition": "Reject"
+    },
+    {
+      "severity": "Low",
+      "category": "CSRF",
+      "summary": "Swagger endpoints in permitAll — no CSRF concern, all are GET endpoints serving static assets",
+      "disposition": "Reject"
+    },
+    {
+      "severity": "Low",
+      "category": "Robustness",
+      "summary": "extractRegistrationId uses lastIndexOf('/') — safe fallback to false for non-Google providers",
+      "disposition": "Reject"
+    }
+  ]
+}

@@ -1,7 +1,9 @@
 ---
 doc_type: system-forward-draft
 promotes_to: docs/system/architecture.md
-status: draft
+status: complete
+completed: 2026-07-27
+completed_at: b129e8f
 ---
 
 # API Documentation & OAuth2 Providers

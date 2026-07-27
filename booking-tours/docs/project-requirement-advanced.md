@@ -90,35 +90,33 @@
 Spring Security 6 đã được triển khai với:
 - JWT authentication via HttpOnly cookies
 - CSRF protection với CookieCsrfTokenRepository
-- Google OAuth2 OIDC login (working)
-- Facebook & Twitter OAuth2 (registered, cần hoàn thiện)
+- Google OAuth2 OIDC login (working) — `CustomOAuth2UserService` via `oidcUserService()`
+- Facebook OAuth2 login (working) — `CustomStandardOAuth2UserService` via `userService()`; Graph API `/me?fields=id,name,email`; synthetic email fallback `facebook_{id}@noemail.local`
+- Twitter OAuth2 2.0 login (working) — same `CustomStandardOAuth2UserService`; API v2 `/2/users/me`; synthetic email `twitter_{username}@noemail.local` (Twitter does not return email)
+- Swagger / OpenAPI 3.0 — enabled in dev only (`springdoc.swagger-ui.enabled=true`); disabled in prod/test; JWT Cookie security scheme registered
 - Login attempt throttling
 - Security headers (CSP, HSTS, X-Frame-Options)
 
-### 3.2 Remaining Tasks
+### 3.2 OAuth2 Architecture
 
-#### Facebook OAuth2 Login
-- Tạo Facebook App tại [developers.facebook.com](https://developers.facebook.com)
-- Cấu hình `Valid OAuth Redirect URIs`: `http://localhost:8080/login/oauth2/code/facebook`
-- Cập nhật `application-dev.properties` với `app-id` và `app-secret` thực
-- Test với Facebook test account
-- **Scope yêu cầu:** `email`, `public_profile`
+Two separate UserService beans handle the three providers:
 
-#### Twitter (X) OAuth2 Login
-- Tạo Twitter App tại [developer.twitter.com](https://developer.twitter.com)
-- Enable OAuth 2.0 với `Type of App: Web App`
-- Cấu hình `Callback URI`: `http://localhost:8080/login/oauth2/code/twitter`
-- Cập nhật config với `client-id` và `client-secret`
-- **Scope yêu cầu:** `tweet.read`, `users.read`, `offline.access`
-- **Lưu ý:** Twitter không trả về email theo mặc định — xử lý bằng cách set `email = null` và yêu cầu user bổ sung sau khi đăng nhập
+| Provider | Protocol | UserService | Name attribute |
+|---|---|---|---|
+| Google | OIDC (openid scope) | `CustomOAuth2UserService` | `email` |
+| Facebook | Standard OAuth2 | `CustomStandardOAuth2UserService` | `id` |
+| Twitter | Standard OAuth2 | `CustomStandardOAuth2UserService` | `synthetic_email` |
+
+- `CustomAuthorizationRequestResolver` adds `prompt=select_account` for Google only (Facebook and Twitter do not support this parameter).
+- Twitter API v2 returns user data nested under a `"data"` key; `authentication.getName()` would resolve to `Map.toString()` without the synthetic email attribute workaround.
 
 #### Acceptance Criteria
-- [ ] User có thể đăng nhập bằng Facebook account
-- [ ] User có thể đăng nhập bằng Twitter account  
+- [ ] User có thể đăng nhập bằng Facebook account (code complete; E2E pending real credentials)
+- [ ] User có thể đăng nhập bằng Twitter account (code complete; E2E pending real credentials)
 - [ ] Sau đăng nhập OAuth2, redirect đúng trang (/tours hoặc /admin)
 - [ ] OAuth account được lưu vào bảng `oauth_accounts`
 - [ ] Không tạo duplicate user nếu email đã tồn tại
-- [ ] CSRF token được gửi đúng trên tất cả form POST
+- [x] CSRF token được gửi đúng trên tất cả form POST
 
 ---
 
@@ -691,11 +689,15 @@ Tất cả chart APIs:
 
 ### 13.1 Setup
 
-**Dependency:** `springdoc-openapi-starter-webmvc-ui 2.x`
+**Dependency:** `springdoc-openapi-starter-webmvc-ui 2.6.0`
 
-**Access URL:** `http://localhost:8080/swagger-ui.html`
+**Access URL (dev only):** `http://localhost:8080/swagger-ui.html`
 
 **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
+
+**Security scheme:** `JWT Cookie` (APIKEY in cookie `JWT_TOKEN`) — defined in `SwaggerConfig.java`.
+
+**Production:** Swagger UI and API docs are disabled (`springdoc.swagger-ui.enabled=false`, `springdoc.api-docs.enabled=false` in `application-prod.properties`).
 
 ### 13.2 API Groups
 
@@ -728,9 +730,9 @@ Tất cả chart APIs:
 - Mô tả authentication scheme (JWT cookie + CSRF header)
 
 #### Acceptance Criteria
-- [ ] Swagger UI accessible và hiển thị đầy đủ endpoints
+- [x] Swagger UI accessible và hiển thị đầy đủ endpoints (14 controllers annotated with `@Tag` + `@Operation`)
 - [ ] Request/response examples đúng với thực tế
-- [ ] Swagger UI không accessible trong môi trường production
+- [x] Swagger UI không accessible trong môi trường production
 
 ---
 

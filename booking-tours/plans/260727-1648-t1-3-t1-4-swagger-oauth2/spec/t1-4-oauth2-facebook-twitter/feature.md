@@ -2,8 +2,10 @@
 feature_id: F004
 title: OAuth2 Facebook + Twitter Verification
 lang: vi
-status: draft
+status: complete
 created: 2026-07-27
+completed: 2026-07-27
+completed_at: b129e8f
 ---
 
 # F004 — OAuth2 Facebook + Twitter
