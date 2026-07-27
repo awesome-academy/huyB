@@ -1,5 +1,6 @@
 package com.sunasterisk.bookingtours.config;
 
+import com.sunasterisk.bookingtours.service.impl.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -26,6 +28,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomAuthenticationSuccessHandler oAuth2SuccessHandler;
     private final JwtUtils jwtUtils;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
     /**
      * JwtAuthenticationFilter không phải @Component để tránh bị Spring Boot
@@ -62,9 +66,12 @@ public class SecurityConfig {
                 // Tắt HTTP Basic Authentication mặc định
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // Không lưu session — mỗi request xác thực độc lập qua JWT
+                // Session: IF_REQUIRED thay vì STATELESS vì OAuth2 Authorization Code flow
+                // cần session để lưu "state" parameter giữa bước redirect đến Google và callback.
+                // Sau khi OAuth2 hoàn thành, JWT cookie được set → mọi request tiếp theo
+                // đều xác thực qua JWT (không cần session nữa).
                 .sessionManagement(sm -> sm
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 // Phân quyền theo URL
                 .authorizeHttpRequests(auth -> auth
@@ -101,9 +108,21 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
-                // OAuth2 Google — success handler tạo JWT + redirect theo role
+                // OAuth2 Google — custom userService tìm/tạo user → success handler tạo JWT + redirect theo role
+                // Dùng .oidcUserService() vì Google dùng OIDC (scope=openid,profile,email),
+                // Spring Security sẽ gọi OidcUserService — KHÔNG phải DefaultOAuth2UserService.
+                // .userService() chỉ dành cho standard OAuth2 (không có openid scope).
+                // authorizationEndpoint: thêm prompt=select_account để Google luôn hiện màn hình
+                // chọn tài khoản, tránh tự dùng lại session cũ khi user muốn đổi tài khoản.
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/auth/login")
+                        .authorizationEndpoint(ep -> ep
+                                .authorizationRequestResolver(
+                                        new CustomAuthorizationRequestResolver(clientRegistrationRepository))
+                        )
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .oidcUserService(customOAuth2UserService)
+                        )
                         .successHandler(oAuth2SuccessHandler)
                 )
 

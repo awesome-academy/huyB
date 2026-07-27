@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          ~{::title/text()},
+          ~{::section#content},
+          ~{},
+          ~{}
+      )}">
+<head>
+    <title>My Profile</title>
+</head>
+<body>
+<section id="content">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            <!-- Page header -->
+            <div class="d-flex align-items-center mb-4">
+                <i class="bi bi-person-circle fs-2 text-primary me-3"></i>
+                <div>
+                    <h2 class="mb-0 fw-bold">My Profile</h2>
+                    <p class="text-muted mb-0 small">View and update your personal information</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+
+                    <!-- Avatar preview -->
+                    <div class="text-center mb-4">
+                        <img th:if="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}"
+                             th:src="${user.avatarUrl}"
+                             alt="Avatar"
+                             class="rounded-circle border border-3 border-primary"
+                             style="width: 100px; height: 100px; object-fit: cover;"
+                             onerror="this.style.display='none'; document.getElementById('avatarFallback').style.display='flex';" />
+                        <div id="avatarFallback"
+                             th:style="${user.avatarUrl == null or #strings.isEmpty(user.avatarUrl)} ? 'display:flex' : 'display:none'"
+                             class="rounded-circle bg-primary text-white justify-content-center align-items-center mx-auto"
+                             style="width: 100px; height: 100px; font-size: 2.5rem;">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <p class="mt-2 text-muted small" th:text="${user.email}">user@example.com</p>
+                    </div>
+
+                    <!-- Profile update form -->
+                    <form th:action="@{/profile}" method="post" th:object="${profileForm}" novalidate>
+
+                        <!-- CSRF token (Thymeleaf injects automatically via th:action) -->
+
+                        <!-- Full Name -->
+                        <div class="mb-3">
+                            <label for="fullName" class="form-label fw-semibold">
+                                Full Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   id="fullName"
+                                   th:field="*{fullName}"
+                                   th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''"
+                                   class="form-control"
+                                   placeholder="Enter your full name"
+                                   maxlength="255" />
+                            <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="mb-3">
+                            <label for="phone" class="form-label fw-semibold">Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input type="tel"
+                                       id="phone"
+                                       th:field="*{phone}"
+                                       th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''"
+                                       class="form-control"
+                                       placeholder="+84 xxx xxx xxx"
+                                       maxlength="20" />
+                                <div class="invalid-feedback" th:errors="*{phone}"></div>
+                            </div>
+                            <div class="form-text">Leave blank to remove your phone number.</div>
+                        </div>
+
+                        <!-- Avatar URL -->
+                        <div class="mb-4">
+                            <label for="avatarUrl" class="form-label fw-semibold">Avatar URL</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-image"></i></span>
+                                <input type="url"
+                                       id="avatarUrl"
+                                       th:field="*{avatarUrl}"
+                                       th:classappend="${#fields.hasErrors('avatarUrl')} ? 'is-invalid' : ''"
+                                       class="form-control"
+                                       placeholder="https://example.com/avatar.jpg"
+                                       maxlength="2048" />
+                                <div class="invalid-feedback" th:errors="*{avatarUrl}"></div>
+                            </div>
+                            <div class="form-text">Enter a public image URL to use as your avatar.</div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+            <!-- Read-only info card -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-light fw-semibold">
+                    <i class="bi bi-shield-lock me-2 text-secondary"></i>Account Information
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-sm-4 text-muted small">Email</div>
+                        <div class="col-sm-8 fw-semibold" th:text="${user.email}">—</div>
+                    </div>
+                    <hr class="my-2" />
+                    <div class="row">
+                        <div class="col-sm-4 text-muted small">Role</div>
+                        <div class="col-sm-8">
+                            <span class="badge"
+                                  th:classappend="${user.role != null and user.role.name == 'ADMIN'} ? 'bg-danger' : 'bg-primary'"
+                                  th:text="${user.role != null ? user.role.name : 'USER'}">USER</span>
+                        </div>
+                    </div>
+                    <hr class="my-2" />
+                    <div class="row">
+                        <div class="col-sm-4 text-muted small">Account Status</div>
+                        <div class="col-sm-8">
+                            <span th:if="${user.isActive}" class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </span>
+                            <span th:unless="${user.isActive}" class="badge bg-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Inactive
+                            </span>
+                        </div>
+                    </div>
+                    <hr class="my-2" />
+                    <div class="row">
+                        <div class="col-sm-4 text-muted small">Member Since</div>
+                        <div class="col-sm-8 small"
+                             th:text="${#temporals.format(user.createdAt, 'dd MMM yyyy')}">—</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</section>
+</body>
+</html>
