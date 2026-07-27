@@ -4,6 +4,7 @@ import com.sunasterisk.bookingtours.dto.BookingRequest;
 import com.sunasterisk.bookingtours.entity.*;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.repository.BookingRepository;
+import com.sunasterisk.bookingtours.repository.PaymentRepository;
 import com.sunasterisk.bookingtours.repository.TourRepository;
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.BookingService;
@@ -32,6 +33,25 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countByStatus(BookingStatus status) {
+        return bookingRepository.countByStatus(status);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal sumTotalPriceByStatus(BookingStatus status) {
+        return bookingRepository.sumTotalPriceByStatus(status);
+    }
 
     /**
      * {@inheritDoc}
@@ -122,6 +142,15 @@ public class BookingServiceImpl implements BookingService {
      * {@inheritDoc}
      */
     @Override
+    public Page<Booking> search(String keyword, BookingStatus status, LocalDate fromDate, LocalDate toDate, Pageable pageable) {
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        return bookingRepository.searchByKeywordAndStatusAndDepartureDate(kw, status, fromDate, toDate, pageable);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     @Transactional(readOnly = true)
     public Booking getBookingDetail(String email, Long bookingId) {
         User user = userRepository.findByEmail(email)
@@ -153,5 +182,62 @@ public class BookingServiceImpl implements BookingService {
         }
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void adminConfirmBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only PENDING bookings can be confirmed. Current status: " + booking.getStatus());
+        }
+        booking.setStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(booking);
+
+        // Cập nhật payment status → CONFIRMED nếu tồn tại
+        paymentRepository.findByBookingId(bookingId).ifPresent(payment -> {
+            payment.setStatus(PaymentStatus.CONFIRMED);
+            paymentRepository.save(payment);
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void adminCancelBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED
+                || booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new IllegalStateException(
+                    "Cannot cancel a booking with status: " + booking.getStatus());
+        }
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+
+        // Cập nhật payment status → FAILED nếu tồn tại
+        paymentRepository.findByBookingId(bookingId).ifPresent(payment -> {
+            payment.setStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Booking getBookingById(Long bookingId) {
+        return bookingRepository.findByIdWithTourAndUser(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
     }
 }
