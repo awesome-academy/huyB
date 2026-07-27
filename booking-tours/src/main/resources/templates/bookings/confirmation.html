@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          pageTitle='Booking Confirmed',
+          content=~{::pageContent},
+          extraHead=~{},
+          extraScripts=~{})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- ============================================================ -->
+    <!-- Breadcrumb                                                    -->
+    <!-- ============================================================ -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/}" class="text-decoration-none">
+                    <i class="bi bi-house me-1"></i>Home
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/bookings}" class="text-decoration-none">My Bookings</a>
+            </li>
+            <li class="breadcrumb-item active">Booking Confirmation</li>
+        </ol>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- Success header                                                -->
+    <!-- ============================================================ -->
+    <div class="text-center mb-5">
+        <div class="mb-3">
+            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+        </div>
+        <h2 class="fw-bold text-success">Booking Created Successfully!</h2>
+        <p class="text-muted fs-5">
+            Your booking is now <span class="badge bg-warning text-dark fs-6">PENDING</span>
+        </p>
+        <p class="text-muted">
+            Please proceed to payment to confirm your spot. Your booking code is:
+        </p>
+        <div class="d-inline-block bg-light border rounded px-4 py-2 mb-3">
+            <span class="fs-3 fw-bold text-primary font-monospace"
+                  th:text="${booking.bookingCode}">BK-00000000-0000</span>
+        </div>
+        <p class="text-muted small">
+            <i class="bi bi-info-circle me-1"></i>
+            Save this code for tracking your booking status.
+        </p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Booking details card                                          -->
+    <!-- ============================================================ -->
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    <i class="bi bi-receipt me-2"></i>Booking Details
+                </div>
+                <ul class="list-group list-group-flush">
+
+                    <!-- Booking Code -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-hash me-2"></i>Booking Code</span>
+                        <span class="fw-bold text-primary font-monospace"
+                              th:text="${booking.bookingCode}">BK-00000000-0000</span>
+                    </li>
+
+                    <!-- Tour Name -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-map me-2"></i>Tour</span>
+                        <span class="fw-semibold" th:text="${booking.tour.title}">Tour Title</span>
+                    </li>
+
+                    <!-- Destination -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Destination</span>
+                        <span class="fw-semibold" th:text="${booking.tour.destination}">—</span>
+                    </li>
+
+                    <!-- Departure Date -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3"
+                        th:if="${booking.tour.departureDate != null}">
+                        <span class="text-muted"><i class="bi bi-calendar3 me-2"></i>Departure Date</span>
+                        <span class="fw-semibold"
+                              th:text="${#temporals.format(booking.tour.departureDate, 'dd/MM/yyyy')}">—</span>
+                    </li>
+
+                    <!-- Duration -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-clock me-2"></i>Duration</span>
+                        <span class="fw-semibold">
+                            <span th:text="${booking.tour.durationDays}">1</span> day(s)
+                        </span>
+                    </li>
+
+                    <!-- Participants -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-people me-2"></i>Participants</span>
+                        <span class="fw-semibold" th:text="${booking.participants}">1</span>
+                    </li>
+
+                    <!-- Total Price -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-light">
+                        <span class="fw-bold fs-5"><i class="bi bi-cash-coin me-2 text-success"></i>Total Price</span>
+                        <span class="fw-bold text-primary fs-5">
+                            <span th:text="${#numbers.formatDecimal(booking.totalPrice, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
+                        </span>
+                    </li>
+
+                    <!-- Status -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-hourglass-split me-2"></i>Status</span>
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6"
+                              th:text="${booking.status}">PENDING</span>
+                    </li>
+
+                    <!-- Note (if any) -->
+                    <li class="list-group-item py-3" th:if="${booking.note != null and !#strings.isEmpty(booking.note)}">
+                        <div class="text-muted mb-1"><i class="bi bi-chat-text me-2"></i>Note</div>
+                        <div class="text-secondary" th:text="${booking.note}">—</div>
+                    </li>
+
+                    <!-- Booking Date -->
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span class="text-muted"><i class="bi bi-clock-history me-2"></i>Booked At</span>
+                        <span class="small text-muted"
+                              th:text="${#temporals.format(booking.createdAt, 'dd/MM/yyyy HH:mm')}">—</span>
+                    </li>
+
+                </ul>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- Next steps info box                                           -->
+            <!-- ============================================================ -->
+            <div class="alert alert-info border-0 shadow-sm mb-4" role="alert">
+                <h6 class="fw-bold mb-2">
+                    <i class="bi bi-lightbulb me-2"></i>What's Next?
+                </h6>
+                <ol class="mb-0 ps-3">
+                    <li class="mb-1">Go to <strong>Payment</strong> to complete your bank transfer.</li>
+                    <li class="mb-1">Enter your <strong>transaction code</strong> to submit the payment.</li>
+                    <li>Wait for <strong>Admin confirmation</strong> — your booking will become <strong>CONFIRMED</strong>.</li>
+                </ol>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- Action buttons                                                -->
+            <!-- ============================================================ -->
+            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                <a th:href="@{/bookings}" class="btn btn-outline-primary btn-lg px-4">
+                    <i class="bi bi-list-ul me-2"></i>View My Bookings
+                </a>
+                <a th:href="@{/tours}" class="btn btn-outline-secondary btn-lg px-4">
+                    <i class="bi bi-search me-2"></i>Browse More Tours
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</th:block>
+</body>
+</html>

@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = "role")
 @Entity
 @Table(name = "users")
 public class User extends BaseEntity {

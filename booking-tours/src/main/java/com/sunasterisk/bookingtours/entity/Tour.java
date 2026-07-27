@@ -15,6 +15,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = "category")
 @Entity
 @Table(name = "tours")
 public class Tour extends BaseEntity {

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          pageTitle='Book Tour',
+          content=~{::pageContent},
+          extraHead=~{},
+          extraScripts=~{::pageScripts})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- ============================================================ -->
+    <!-- Breadcrumb                                                    -->
+    <!-- ============================================================ -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a th:href="@{/}" class="text-decoration-none">
+                    <i class="bi bi-house me-1"></i>Home
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/tours}" class="text-decoration-none">Tours</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/tours/{id}(id=${tour.id})}"
+                   th:text="${tour.title}" class="text-decoration-none">Tour Title</a>
+            </li>
+            <li class="breadcrumb-item active">Book Tour</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4 justify-content-center">
+
+        <!-- ============================================================ -->
+        <!-- LEFT: Booking Form                                            -->
+        <!-- ============================================================ -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-calendar-check me-2"></i>Book Your Tour
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+
+                    <form th:action="@{/bookings}" th:object="${bookingRequest}" method="post"
+                          id="bookingForm" novalidate>
+
+                        <!-- Hidden tourId -->
+                        <input type="hidden" th:field="*{tourId}"/>
+
+                        <!-- ------------------------------------------------ -->
+                        <!-- Số người tham gia                                  -->
+                        <!-- ------------------------------------------------ -->
+                        <div class="mb-4">
+                            <label for="participants" class="form-label fw-semibold">
+                                <i class="bi bi-people me-1 text-primary"></i>
+                                Number of Participants
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <button type="button" class="btn btn-outline-secondary"
+                                        id="btnMinus" onclick="changeParticipants(-1)">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+                                <input type="number"
+                                       th:field="*{participants}"
+                                       id="participants"
+                                       class="form-control text-center fw-bold fs-5"
+                                       th:classappend="${#fields.hasErrors('participants')} ? 'is-invalid'"
+                                       min="1"
+                                       th:max="${tour.maxParticipants}"
+                                       th:data-price="${tour.price}"
+                                       oninput="updateTotalPrice()"
+                                       style="max-width: 120px;"/>
+                                <button type="button" class="btn btn-outline-secondary"
+                                        id="btnPlus"
+                                        th:onclick="|changeParticipants(1, ${tour.maxParticipants})|">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback d-block"
+                                 th:if="${#fields.hasErrors('participants')}"
+                                 th:errors="*{participants}">Error</div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Maximum <strong th:text="${tour.maxParticipants}">0</strong> participants per booking.
+                            </div>
+                        </div>
+
+                        <!-- ------------------------------------------------ -->
+                        <!-- Tổng tiền (auto-calculated)                        -->
+                        <!-- ------------------------------------------------ -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-cash-coin me-1 text-success"></i>
+                                Total Price
+                            </label>
+                            <div class="p-3 bg-light rounded border">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted">Price per person:</span>
+                                    <span class="fw-semibold">
+                                        <span th:text="${#numbers.formatDecimal(tour.price, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted">Participants:</span>
+                                    <span class="fw-semibold" id="summaryParticipants">1</span>
+                                </div>
+                                <hr class="my-2"/>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold fs-5">Total:</span>
+                                    <span class="fw-bold text-primary fs-4" id="totalPriceDisplay">
+                                        <!-- will be set by JS -->
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ------------------------------------------------ -->
+                        <!-- Ghi chú (tuỳ chọn)                                 -->
+                        <!-- ------------------------------------------------ -->
+                        <div class="mb-4">
+                            <label for="note" class="form-label fw-semibold">
+                                <i class="bi bi-chat-text me-1 text-secondary"></i>
+                                Note <span class="text-muted fw-normal">(optional)</span>
+                            </label>
+                            <textarea th:field="*{note}"
+                                      id="note"
+                                      class="form-control"
+                                      rows="3"
+                                      placeholder="Any special requests or notes for your booking…"
+                                      maxlength="500"></textarea>
+                            <div class="form-text">Up to 500 characters.</div>
+                        </div>
+
+                        <!-- ------------------------------------------------ -->
+                        <!-- Submit                                              -->
+                        <!-- ------------------------------------------------ -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a th:href="@{/tours/{id}(id=${tour.id})}"
+                               class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-arrow-left me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="bi bi-check-circle me-2"></i>Confirm Booking
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- RIGHT: Tour summary card                                      -->
+        <!-- ============================================================ -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 80px;">
+                <div class="card-header bg-light fw-semibold">
+                    <i class="bi bi-info-circle me-2 text-primary"></i>Tour Summary
+                </div>
+
+                <!-- Thumbnail -->
+                <div th:if="${tour.thumbnailUrl != null}" class="overflow-hidden"
+                     style="max-height: 200px;">
+                    <img th:src="${tour.thumbnailUrl}"
+                         class="img-fluid w-100"
+                         alt="Tour thumbnail"
+                         style="object-fit: cover; height: 200px;"/>
+                </div>
+                <div th:unless="${tour.thumbnailUrl != null}"
+                     class="bg-light d-flex align-items-center justify-content-center border-bottom"
+                     style="height: 120px;">
+                    <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item fw-semibold text-primary fs-6 py-3"
+                        th:text="${tour.title}">Tour Title</li>
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span class="text-muted small"><i class="bi bi-geo-alt-fill text-danger me-1"></i>Destination</span>
+                        <span class="fw-semibold small" th:text="${tour.destination}">—</span>
+                    </li>
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2"
+                        th:if="${tour.departureDate != null}">
+                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>Departure</span>
+                        <span class="fw-semibold small"
+                              th:text="${#temporals.format(tour.departureDate, 'dd/MM/yyyy')}">—</span>
+                    </li>
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span class="text-muted small"><i class="bi bi-clock me-1"></i>Duration</span>
+                        <span class="fw-semibold small">
+                            <span th:text="${tour.durationDays}">1</span> day(s)
+                        </span>
+                    </li>
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span class="text-muted small"><i class="bi bi-people me-1"></i>Max Participants</span>
+                        <span class="fw-semibold small" th:text="${tour.maxParticipants}">20</span>
+                    </li>
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-light">
+                        <span class="fw-bold">Price per person</span>
+                        <span class="fw-bold text-primary">
+                            <span th:text="${#numbers.formatDecimal(tour.price, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
+                        </span>
+                    </li>
+                </ul>
+
+                <!-- Status badge -->
+                <div class="card-footer bg-success bg-opacity-10 text-center">
+                    <span class="badge bg-warning text-dark px-3 py-2">
+                        <i class="bi bi-hourglass-split me-1"></i>Status after booking: PENDING
+                    </span>
+                    <p class="small text-muted mb-0 mt-2">
+                        Your booking will be confirmed after payment.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</th:block>
+
+<!-- ============================================================ -->
+<!-- Page-specific JS: auto-calculate total price                 -->
+<!-- ============================================================ -->
+<th:block th:fragment="pageScripts">
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const pricePerPerson = /*[[${tour.price}]]*/ 0;
+    const maxParticipants = /*[[${tour.maxParticipants}]]*/ 1;
+
+    /**
+     * Format a number as Vietnamese currency (e.g. 1,500,000 ₫)
+     */
+    function formatCurrency(amount) {
+        return amount.toLocaleString('vi-VN') + ' ₫';
+    }
+
+    /**
+     * Update the total price display and the participants summary label.
+     */
+    function updateTotalPrice() {
+        const input = document.getElementById('participants');
+        let value = parseInt(input.value, 10);
+
+        // Clamp
+        if (isNaN(value) || value < 1) value = 1;
+        if (value > maxParticipants) value = maxParticipants;
+        input.value = value;
+
+        const total = pricePerPerson * value;
+        document.getElementById('totalPriceDisplay').textContent = formatCurrency(total);
+        document.getElementById('summaryParticipants').textContent = value.toString();
+    }
+
+    /**
+     * Increment / decrement participants via +/- buttons.
+     */
+    function changeParticipants(delta, max) {
+        const input = document.getElementById('participants');
+        let value = parseInt(input.value.toString(), 10) || 1;
+        value += delta;
+        if (value < 1) value = 1;
+        const limit = max || maxParticipants;
+        if (value > limit) value = limit;
+        input.value = value;
+        updateTotalPrice();
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateTotalPrice();
+    });
+    /*]]>*/
+</script>
+</th:block>
+</body>
+</html>
