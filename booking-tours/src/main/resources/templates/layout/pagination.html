@@ -64,5 +64,59 @@
     </div>
 </th:block>
 
+<!--
+  Pagination variant for pages with both keyword + categoryId filters.
+
+  Parameters:
+    pageNumbers  – List<Integer> from PaginationUtils (-1 = ellipsis sentinel)
+    currentPage  – 0-based index of the active page
+    totalPages   – total number of pages
+    baseUrl      – URL path used to build page links, e.g. '/tours'
+    keyword      – current search keyword (may be empty string)
+    categoryId   – selected category id (may be null)
+-->
+<th:block th:fragment="paginateWithCategory(pageNumbers, currentPage, totalPages, baseUrl, keyword, categoryId)">
+    <div class="d-flex justify-content-center mt-4"
+         th:if="${totalPages > 1}">
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+
+                <!-- Previous -->
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{${baseUrl}(page=${currentPage > 0 ? currentPage - 1 : 0}, keyword=${keyword}, categoryId=${categoryId})}"
+                       aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Windowed page numbers -->
+                <th:block th:each="p : ${pageNumbers}">
+                    <li th:if="${p == -1}" class="page-item disabled">
+                        <span class="page-link px-2">…</span>
+                    </li>
+                    <li th:if="${p != -1}"
+                        class="page-item"
+                        th:classappend="${p == currentPage} ? 'active'">
+                        <a class="page-link"
+                           th:href="@{${baseUrl}(page=${p}, keyword=${keyword}, categoryId=${categoryId})}"
+                           th:text="${p + 1}">1</a>
+                    </li>
+                </th:block>
+
+                <!-- Next -->
+                <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{${baseUrl}(page=${currentPage + 1 < totalPages ? currentPage + 1 : totalPages - 1}, keyword=${keyword}, categoryId=${categoryId})}"
+                       aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+</th:block>
+
 </body>
 </html>

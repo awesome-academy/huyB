@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle='Tour Management', content=~{::pageContent}, extraHead=~{}, extraScripts=~{::extraScripts})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-map-fill me-2 text-primary"></i>Tour Management
+        </h3>
+        <div class="d-flex gap-2">
+            <a th:href="@{/admin/tours/new}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>New Tour
+            </a>
+            <a th:href="@{/admin}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Search form -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form th:action="@{/admin/tours}" method="get" class="d-flex gap-2">
+                <input type="text"
+                       name="keyword"
+                       class="form-control"
+                       placeholder="Search by title or destination…"
+                       th:value="${keyword}"/>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+                <a th:href="@{/admin/tours}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tours table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">
+                Total: <strong th:text="${tourPage.totalElements}">0</strong> tours
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:50px">#</th>
+                        <th style="width:80px">Thumbnail</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th class="text-end">Price (VND)</th>
+                        <th class="text-center">Days</th>
+                        <th>Departure Date</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center" style="width:120px">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <!-- Empty state -->
+                    <tr th:if="${tourPage.empty}">
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            No tours found.
+                        </td>
+                    </tr>
+
+                    <!-- Tour rows -->
+                    <tr th:each="tour, stat : ${tourPage.content}">
+                        <!-- Row number (1-based, accounting for page offset) -->
+                        <td class="ps-3 text-muted small"
+                            th:text="${tourPage.number * tourPage.size + stat.index + 1}">1</td>
+
+                        <!-- Thumbnail preview -->
+                        <td>
+                            <img th:if="${tour.thumbnailUrl != null}"
+                                 th:src="${tour.thumbnailUrl}"
+                                 alt="thumbnail"
+                                 class="rounded"
+                                 style="width:60px;height:45px;object-fit:cover;"/>
+                            <span th:unless="${tour.thumbnailUrl != null}"
+                                  class="text-muted small">—</span>
+                        </td>
+
+                        <!-- Title + destination -->
+                        <td>
+                            <span class="fw-semibold" th:text="${tour.title}">Tour Title</span>
+                            <br/>
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>
+                                <span th:text="${tour.destination}">Destination</span>
+                            </small>
+                        </td>
+
+                        <!-- Category (nullable — FK SET NULL khi category bị xóa) -->
+                        <td>
+                            <span th:if="${tour.category != null}"
+                                  class="badge bg-light text-dark border"
+                                  th:text="${tour.category.name}">Category</span>
+                            <span th:unless="${tour.category != null}"
+                                  class="text-muted small">—</span>
+                        </td>
+
+                        <!-- Price formatted with thousands separator -->
+                        <td class="text-end fw-semibold"
+                            th:text="${#numbers.formatDecimal(tour.price, 1, 'COMMA', 0, 'POINT')}">
+                            0
+                        </td>
+
+                        <!-- Duration -->
+                        <td class="text-center" th:text="${tour.durationDays}">1</td>
+
+                        <!-- Departure date -->
+                        <td th:text="${tour.departureDate != null ?
+                                #temporals.format(tour.departureDate, 'dd/MM/yyyy') : '—'}">—</td>
+
+                        <!-- Status badge: xanh = ACTIVE, xám = INACTIVE -->
+                        <td class="text-center">
+                            <span th:if="${tour.status.name() == 'ACTIVE'}"
+                                  class="badge bg-success">ACTIVE</span>
+                            <span th:unless="${tour.status.name() == 'ACTIVE'}"
+                                  class="badge bg-secondary">INACTIVE</span>
+                        </td>
+
+                        <!-- Actions: Edit + Delete -->
+                        <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a th:href="@{/admin/tours/{id}/edit(id=${tour.id})}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/admin/tours/{id}/delete(id=${tour.id})}"
+                                      method="post"
+                                      onsubmit="return confirmDelete(this)">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination fragment -->
+        <th:block th:replace="~{layout/pagination :: paginate(
+            ${pageNumbers}, ${currentPage}, ${totalPages},
+            '/admin/tours', ${keyword})}"/>
+    </div>
+</th:block>
+
+<th:block th:fragment="extraScripts">
+    <script>
+        function confirmDelete(form) {
+            return confirm('Are you sure you want to delete this tour? This action cannot be undone.');
+        }
+    </script>
+</th:block>
+</body>
+</html>

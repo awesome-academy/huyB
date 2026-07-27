@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(
+          pageTitle=${editMode} ? 'Edit Tour' : 'New Tour',
+          content=~{::pageContent},
+          extraHead=~{},
+          extraScripts=~{::extraScripts})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-map-fill me-2 text-primary"></i>
+            <span th:text="${editMode} ? 'Edit Tour' : 'New Tour'">Tour Form</span>
+        </h3>
+        <a th:href="@{/admin/tours}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Tours
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 col-xl-9 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+
+                    <!-- Inline service error (e.g. duplicate title) -->
+                    <div th:if="${errorMessage}"
+                         class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <!--
+                        enctype="multipart/form-data" bắt buộc khi form có file upload.
+                        POST to /{id} for update, or to /admin/tours for create.
+                    -->
+                    <form th:action="${editMode} ? @{/admin/tours/{id}(id=${tourId})} : @{/admin/tours}"
+                          th:object="${tourRequest}"
+                          method="post"
+                          enctype="multipart/form-data"
+                          novalidate>
+
+                        <!-- ================================================ -->
+                        <!-- ROW 1: Title (full width)                         -->
+                        <!-- ================================================ -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-semibold">
+                                Tour Title <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   id="title"
+                                   th:field="*{title}"
+                                   th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                                   class="form-control"
+                                   placeholder="e.g. Ha Long Bay 3D2N Premium…"
+                                   maxlength="255"
+                                   autofocus/>
+                            <div class="invalid-feedback"
+                                 th:if="${#fields.hasErrors('title')}"
+                                 th:errors="*{title}">Title error</div>
+                        </div>
+
+                        <!-- ================================================ -->
+                        <!-- ROW 2: Description                                -->
+                        <!-- ================================================ -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-semibold">
+                                Description <span class="text-danger">*</span>
+                            </label>
+                            <textarea id="description"
+                                      th:field="*{description}"
+                                      th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"
+                                      class="form-control"
+                                      rows="5"
+                                      placeholder="Describe the tour itinerary, highlights…"
+                                      maxlength="5000"></textarea>
+                            <div class="invalid-feedback"
+                                 th:if="${#fields.hasErrors('description')}"
+                                 th:errors="*{description}">Description error</div>
+                        </div>
+
+                        <!-- ================================================ -->
+                        <!-- ROW 3: Price | Duration | Max Participants        -->
+                        <!-- ================================================ -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label for="price" class="form-label fw-semibold">
+                                    Price (VND) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       id="price"
+                                       th:field="*{price}"
+                                       th:classappend="${#fields.hasErrors('price')} ? 'is-invalid'"
+                                       class="form-control"
+                                       placeholder="e.g. 3500000"
+                                       min="1"
+                                       step="1000"/>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('price')}"
+                                     th:errors="*{price}">Price error</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="durationDays" class="form-label fw-semibold">
+                                    Duration (days) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       id="durationDays"
+                                       th:field="*{durationDays}"
+                                       th:classappend="${#fields.hasErrors('durationDays')} ? 'is-invalid'"
+                                       class="form-control"
+                                       placeholder="e.g. 3"
+                                       min="1"/>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('durationDays')}"
+                                     th:errors="*{durationDays}">Duration error</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="maxParticipants" class="form-label fw-semibold">
+                                    Max Participants <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       id="maxParticipants"
+                                       th:field="*{maxParticipants}"
+                                       th:classappend="${#fields.hasErrors('maxParticipants')} ? 'is-invalid'"
+                                       class="form-control"
+                                       placeholder="e.g. 20"
+                                       min="1"/>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('maxParticipants')}"
+                                     th:errors="*{maxParticipants}">Max participants error</div>
+                            </div>
+                        </div>
+
+                        <!-- ================================================ -->
+                        <!-- ROW 4: Departure Location | Destination           -->
+                        <!-- ================================================ -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="departureLocation" class="form-label fw-semibold">
+                                    Departure Location <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       id="departureLocation"
+                                       th:field="*{departureLocation}"
+                                       th:classappend="${#fields.hasErrors('departureLocation')} ? 'is-invalid'"
+                                       class="form-control"
+                                       placeholder="e.g. Hanoi"
+                                       maxlength="255"/>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('departureLocation')}"
+                                     th:errors="*{departureLocation}">Departure location error</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="destination" class="form-label fw-semibold">
+                                    Destination <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       id="destination"
+                                       th:field="*{destination}"
+                                       th:classappend="${#fields.hasErrors('destination')} ? 'is-invalid'"
+                                       class="form-control"
+                                       placeholder="e.g. Ha Long Bay"
+                                       maxlength="255"/>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('destination')}"
+                                     th:errors="*{destination}">Destination error</div>
+                            </div>
+                        </div>
+
+                        <!-- ================================================ -->
+                        <!-- ROW 5: Departure Date | Category | Status         -->
+                        <!-- ================================================ -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label for="departureDate" class="form-label fw-semibold">
+                                    Departure Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       id="departureDate"
+                                       th:field="*{departureDate}"
+                                       th:classappend="${#fields.hasErrors('departureDate')} ? 'is-invalid'"
+                                       class="form-control"/>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('departureDate')}"
+                                     th:errors="*{departureDate}">Departure date error</div>
+                            </div>
+
+                            <!-- Category dropdown — dữ liệu từ categoryService.getAll() -->
+                            <div class="col-md-4">
+                                <label for="categoryId" class="form-label fw-semibold">
+                                    Category <span class="text-danger">*</span>
+                                </label>
+                                <select id="categoryId"
+                                        th:field="*{categoryId}"
+                                        th:classappend="${#fields.hasErrors('categoryId')} ? 'is-invalid'"
+                                        class="form-select">
+                                    <option value="">— Select category —</option>
+                                    <option th:each="cat : ${categories}"
+                                            th:value="${cat.id}"
+                                            th:text="${cat.name}">Category</option>
+                                </select>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('categoryId')}"
+                                     th:errors="*{categoryId}">Category error</div>
+                            </div>
+
+                            <!-- Status dropdown: ACTIVE / INACTIVE -->
+                            <div class="col-md-4">
+                                <label for="status" class="form-label fw-semibold">
+                                    Status <span class="text-danger">*</span>
+                                </label>
+                                <select id="status"
+                                        th:field="*{status}"
+                                        th:classappend="${#fields.hasErrors('status')} ? 'is-invalid'"
+                                        class="form-select">
+                                    <option value="">— Select status —</option>
+                                    <option th:each="s : ${tourStatuses}"
+                                            th:value="${s.name()}"
+                                            th:text="${s.name()}">Status</option>
+                                </select>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('status')}"
+                                     th:errors="*{status}">Status error</div>
+                            </div>
+                        </div>
+
+                        <!-- ================================================ -->
+                        <!-- ROW 6: Thumbnail Upload                           -->
+                        <!-- ================================================ -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Thumbnail Image</label>
+
+                            <!--
+                                Khi edit: ảnh hiện tại được lưu qua hidden field (thumbnailUrl).
+                                Nếu admin chọn file mới → controller sẽ upload file mới và xóa ảnh cũ.
+                                Nếu admin không chọn file → giữ nguyên thumbnailUrl cũ.
+                            -->
+                            <input type="hidden" th:field="*{thumbnailUrl}"/>
+
+                            <!-- Giữ lại URL hiện tại để controller dùng khi xóa ảnh cũ -->
+                            <input type="hidden" name="currentThumbnailUrl"
+                                   th:value="*{thumbnailUrl}"/>
+
+                            <!-- Preview ảnh hiện tại (chỉ hiển thị khi edit và đã có ảnh) -->
+                            <div th:if="${editMode and tourRequest.thumbnailUrl != null}"
+                                 class="mb-2">
+                                <p class="text-muted small mb-1">Current thumbnail:</p>
+                                <img th:src="${tourRequest.thumbnailUrl}"
+                                     alt="Current thumbnail"
+                                     class="rounded border"
+                                     style="max-height:150px;max-width:250px;object-fit:cover;"/>
+                            </div>
+
+                            <!-- File input — Spring nhận qua @RequestParam("thumbnailFile") -->
+                            <input type="file"
+                                   name="thumbnailFile"
+                                   id="thumbnailFile"
+                                   class="form-control"
+                                   accept="image/jpeg,image/png,image/gif,image/webp"
+                                   onchange="previewThumbnail(this)"/>
+                            <div class="form-text">
+                                Accepted formats: JPEG, PNG, GIF, WebP · Max size: 5 MB
+                            </div>
+
+                            <!-- Real-time preview khi chọn file mới -->
+                            <div id="thumbnailPreview" class="mt-2 d-none">
+                                <p class="text-muted small mb-1">New thumbnail preview:</p>
+                                <img id="previewImg"
+                                     src="#"
+                                     alt="Preview"
+                                     class="rounded border"
+                                     style="max-height:150px;max-width:250px;object-fit:cover;"/>
+                            </div>
+
+                            <div class="invalid-feedback d-block"
+                                 th:if="${#fields.hasErrors('thumbnailUrl')}"
+                                 th:errors="*{thumbnailUrl}">Thumbnail error</div>
+                        </div>
+
+                        <!-- ================================================ -->
+                        <!-- Action buttons                                    -->
+                        <!-- ================================================ -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-1"></i>
+                                <span th:text="${editMode} ? 'Update Tour' : 'Create Tour'">Save</span>
+                            </button>
+                            <a th:href="@{/admin/tours}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block th:fragment="extraScripts">
+    <script>
+        /**
+         * Hiển thị preview ảnh ngay khi người dùng chọn file,
+         * giúp admin xác nhận ảnh trước khi submit form.
+         */
+        function previewThumbnail(input) {
+            const previewDiv = document.getElementById('thumbnailPreview');
+            const previewImg = document.getElementById('previewImg');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    previewDiv.classList.remove('d-none');
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                previewDiv.classList.add('d-none');
+            }
+        }
+    </script>
+</th:block>
+</body>
+</html>
