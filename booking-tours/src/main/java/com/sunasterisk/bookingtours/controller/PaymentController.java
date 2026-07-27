@@ -9,6 +9,8 @@ import com.sunasterisk.bookingtours.service.BankAccountService;
 import com.sunasterisk.bookingtours.service.BookingService;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -30,6 +32,7 @@ import java.util.Optional;
  *   <li>POST /bookings/{bookingId}/pay  — Tạo Payment PENDING</li>
  * </ul>
  */
+@Tag(name = "Payments", description = "Thanh toán booking")
 @Controller
 @RequiredArgsConstructor
 public class PaymentController {

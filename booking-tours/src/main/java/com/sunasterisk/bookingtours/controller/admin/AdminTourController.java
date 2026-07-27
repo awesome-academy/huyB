@@ -8,6 +8,8 @@ import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.util.FileStorageService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +28,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  *
  * <p>Tất cả endpoint đều yêu cầu role ADMIN (kiểm soát bởi SecurityConfig).
  */
+@Tag(name = "Admin - Tours", description = "Quản lý tour du lịch")
 @Slf4j
 @Controller
 @RequestMapping("/admin/tours")

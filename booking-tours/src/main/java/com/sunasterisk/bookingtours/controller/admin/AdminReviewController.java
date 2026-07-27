@@ -4,6 +4,8 @@ import com.sunasterisk.bookingtours.entity.ReviewStatus;
 import com.sunasterisk.bookingtours.entity.ReviewType;
 import com.sunasterisk.bookingtours.service.ReviewService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * Controller quản lý review phía Admin (task 8.4).
  * Tất cả endpoint yêu cầu role ADMIN (SecurityConfig).
  */
+@Tag(name = "Admin - Reviews", description = "Kiểm duyệt và quản lý đánh giá")
 @Slf4j
 @Controller
 @RequestMapping("/admin/reviews")

@@ -5,6 +5,8 @@ import com.sunasterisk.bookingtours.entity.UserBankAccount;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.service.BankAccountService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -16,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
+@Tag(name = "Bank Accounts", description = "Quản lý tài khoản ngân hàng của người dùng")
 @Controller
 @RequestMapping("/profile/bank-accounts")
 @RequiredArgsConstructor

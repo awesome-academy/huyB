@@ -9,6 +9,8 @@ import com.sunasterisk.bookingtours.service.PaymentService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +37,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * <p>
  * Yêu cầu xác thực (anyRequest().authenticated() trong SecurityConfig).
  */
+@Tag(name = "Bookings", description = "Đặt tour, xem danh sách và hủy booking")
 @Controller
 @RequestMapping("/bookings")
 @RequiredArgsConstructor

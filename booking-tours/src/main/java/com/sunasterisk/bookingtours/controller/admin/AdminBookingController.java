@@ -6,6 +6,8 @@ import com.sunasterisk.bookingtours.entity.Payment;
 import com.sunasterisk.bookingtours.service.BookingService;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,7 @@ import java.time.LocalDate;
  *
  * <p>Tất cả endpoint đều yêu cầu role ADMIN (kiểm soát bởi SecurityConfig).</p>
  */
+@Tag(name = "Admin - Bookings", description = "Quản lý booking của toàn hệ thống")
 @Slf4j
 @Controller
 @RequestMapping("/admin/bookings")

@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +22,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Authentication", description = "Đăng ký, đăng nhập, đăng xuất")
 @Slf4j
 @Controller
 @RequestMapping("/auth")
@@ -87,6 +90,7 @@ public class AuthController {
     // Login
     // ----------------------------------------------------------------
 
+    @Operation(summary = "Hiển thị trang đăng nhập")
     @GetMapping("/login")
     public String showLoginForm(Model model) {
         model.addAttribute("loginRequest", new LoginRequest());

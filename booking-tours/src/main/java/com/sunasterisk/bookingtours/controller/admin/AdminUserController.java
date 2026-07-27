@@ -3,6 +3,8 @@ package com.sunasterisk.bookingtours.controller.admin;
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.service.UserService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+@Tag(name = "Admin - Users", description = "Quản lý tài khoản người dùng")
 @Controller
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor

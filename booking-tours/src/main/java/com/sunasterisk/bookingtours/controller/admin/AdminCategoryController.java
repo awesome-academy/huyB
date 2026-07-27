@@ -5,6 +5,8 @@ import com.sunasterisk.bookingtours.entity.Category;
 import com.sunasterisk.bookingtours.service.CategoryService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+@Tag(name = "Admin - Categories", description = "Quản lý danh mục tour")
 @Controller
 @RequestMapping("/admin/categories")
 @RequiredArgsConstructor
