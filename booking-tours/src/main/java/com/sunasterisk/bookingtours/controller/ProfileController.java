@@ -4,6 +4,8 @@ import com.sunasterisk.bookingtours.dto.ProfileUpdateRequest;
 import com.sunasterisk.bookingtours.entity.User;
 import com.sunasterisk.bookingtours.service.UserService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+@Tag(name = "Profile", description = "Quản lý thông tin cá nhân")
 @Controller
 @RequestMapping("/profile")
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class ProfileController {
     /**
      * Hiển thị trang hồ sơ cá nhân của user đang đăng nhập.
      */
+    @Operation(summary = "Trang hồ sơ cá nhân", description = "Hiển thị thông tin và form chỉnh sửa profile")
     @GetMapping
     public String showProfile(Authentication authentication, Model model) {
         User user = userService.getByEmail(authentication.getName());
@@ -43,6 +47,7 @@ public class ProfileController {
     /**
      * Xử lý cập nhật hồ sơ: full_name, phone, avatar_url.
      */
+    @Operation(summary = "Cập nhật hồ sơ", description = "Cập nhật full_name, phone, avatar_url")
     @PostMapping
     public String updateProfile(
             Authentication authentication,

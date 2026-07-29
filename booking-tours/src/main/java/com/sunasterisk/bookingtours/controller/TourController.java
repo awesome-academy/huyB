@@ -7,6 +7,8 @@ import com.sunasterisk.bookingtours.service.RatingService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * Controller công khai cho trang danh sách và chi tiết tour.
  * Cho phép cả Guest và User xem danh sách, tìm kiếm và chi tiết tour.
  */
+@Tag(name = "Tours", description = "Danh sách, tìm kiếm và chi tiết tour")
 @Controller
 @RequestMapping("/tours")
 @RequiredArgsConstructor
@@ -42,6 +45,7 @@ public class TourController {
      * @param model      Spring MVC model
      * @return view name
      */
+    @Operation(summary = "Danh sách tour công khai", description = "Phân trang, lọc theo category, tìm kiếm theo tên/địa điểm")
     @GetMapping
     public String listTours(
             @RequestParam(value = "keyword", defaultValue = "") String keyword,
@@ -77,6 +81,7 @@ public class TourController {
      * @param model Spring MVC model
      * @return view name
      */
+    @Operation(summary = "Chi tiết tour công khai", description = "Chỉ hiển thị tour ACTIVE")
     @GetMapping("/{id}")
     public String tourDetail(@PathVariable Long id, Authentication authentication, Model model) {
         Tour tour = tourService.getPublicById(id);
@@ -108,6 +113,7 @@ public class TourController {
      * @param redirectAttributes flash messages
      * @return redirect về trang chi tiết tour
      */
+    @Operation(summary = "Rating tour", description = "User rating tour 1–5 sao, upsert nếu đã rating trước đó")
     @PostMapping("/{id}/rate")
     public String rateTour(@PathVariable Long id,
                            @Valid @ModelAttribute RatingRequest ratingRequest,

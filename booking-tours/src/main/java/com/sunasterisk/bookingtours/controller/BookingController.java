@@ -9,6 +9,8 @@ import com.sunasterisk.bookingtours.service.PaymentService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +37,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * <p>
  * Yêu cầu xác thực (anyRequest().authenticated() trong SecurityConfig).
  */
+@Tag(name = "Bookings", description = "Đặt tour, xem danh sách và hủy booking")
 @Controller
 @RequestMapping("/bookings")
 @RequiredArgsConstructor
@@ -59,6 +62,7 @@ public class BookingController {
      * @param model  Spring MVC model
      * @return view {@code bookings/list}
      */
+    @Operation(summary = "Lịch sử booking", description = "Danh sách booking của user, có lọc theo status")
     @GetMapping
     public String bookingHistory(
             @RequestParam(required = false) String status,
@@ -100,6 +104,7 @@ public class BookingController {
      * @param model Spring MVC model
      * @return view {@code bookings/detail}
      */
+    @Operation(summary = "Chi tiết booking", description = "Chỉ user sở hữu mới được xem")
     @GetMapping("/{id}")
     public String bookingDetail(
             @PathVariable Long id,
@@ -125,6 +130,7 @@ public class BookingController {
      * @param redirectAttrs flash attributes
      * @return redirect về trang chi tiết booking
      */
+    @Operation(summary = "Hủy booking", description = "Chỉ hủy được booking ở trạng thái PENDING")
     @PostMapping("/{id}/cancel")
     public String cancelBooking(
             @PathVariable Long id,
@@ -155,6 +161,7 @@ public class BookingController {
      * @param model  Spring MVC model
      * @return view {@code bookings/new}
      */
+    @Operation(summary = "Form đặt tour", description = "Hiển thị form đặt tour với tourId được chọn")
     @GetMapping("/new")
     public String showBookingForm(
             @RequestParam("tourId") Long tourId,
@@ -185,6 +192,7 @@ public class BookingController {
      * @param redirectAttrs  flash attributes
      * @return redirect tới trang xác nhận hoặc render lại form nếu lỗi
      */
+    @Operation(summary = "Tạo booking", description = "Validate và tạo booking PENDING, redirect về trang xác nhận")
     @PostMapping
     public String submitBooking(
             Authentication authentication,
@@ -228,6 +236,7 @@ public class BookingController {
      * @param model          Spring MVC model
      * @return view {@code bookings/confirmation}
      */
+    @Operation(summary = "Trang xác nhận booking", description = "Hiển thị chi tiết booking vừa tạo thành công")
     @GetMapping("/confirmation/{bookingCode}")
     public String confirmationPage(
             @PathVariable String bookingCode,

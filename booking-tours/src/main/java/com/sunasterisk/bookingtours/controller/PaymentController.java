@@ -9,6 +9,8 @@ import com.sunasterisk.bookingtours.service.BankAccountService;
 import com.sunasterisk.bookingtours.service.BookingService;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -30,6 +32,7 @@ import java.util.Optional;
  *   <li>POST /bookings/{bookingId}/pay  — Tạo Payment PENDING</li>
  * </ul>
  */
+@Tag(name = "Payments", description = "Thanh toán booking")
 @Controller
 @RequiredArgsConstructor
 public class PaymentController {
@@ -51,6 +54,7 @@ public class PaymentController {
      * @param model     Spring MVC model
      * @return view {@code bookings/pay}
      */
+    @Operation(summary = "Trang thanh toán", description = "Hiển thị thông tin booking và form nhập mã giao dịch")
     @GetMapping("/bookings/{bookingId}/pay")
     public String showPaymentForm(
             @PathVariable Long bookingId,
@@ -107,6 +111,7 @@ public class PaymentController {
      * @param redirectAttrs  flash attributes
      * @return redirect tới trang chi tiết booking hoặc render lại form nếu lỗi
      */
+    @Operation(summary = "Tạo payment", description = "Tạo Payment PENDING chờ admin xác nhận")
     @PostMapping("/bookings/{bookingId}/pay")
     public String submitPayment(
             @PathVariable Long bookingId,

@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.config;
 
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.impl.CustomOAuth2UserService;
+import com.sunasterisk.bookingtours.service.impl.CustomStandardOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +33,7 @@ public class SecurityConfig {
     private final CustomAuthenticationSuccessHandler oAuth2SuccessHandler;
     private final JwtUtils jwtUtils;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomStandardOAuth2UserService customStandardOAuth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final UserRepository userRepository;
 
@@ -61,7 +63,7 @@ public class SecurityConfig {
         http
                 // Bật CSRF với CookieCsrfTokenRepository (token lưu trong XSRF-TOKEN cookie).
                 // Thymeleaf th:action tự inject hidden _csrf field → form submit hợp lệ.
-                // Kết hợp HttpOnly + SameSite=Strict + CSRF token = defense-in-depth 3 lớp.
+                // Kết hợp HttpOnly + SameSite=Lax + CSRF token = defense-in-depth 3 lớp.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
@@ -106,7 +108,11 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**",
                                 "/uploads/**",
-                                "/error/**"
+                                "/error/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
                         ).permitAll()
 
                         // Reviews: chỉ trang danh sách và trang chi tiết là công khai.
@@ -147,7 +153,8 @@ public class SecurityConfig {
                                         new CustomAuthorizationRequestResolver(clientRegistrationRepository))
                         )
                         .userInfoEndpoint(userInfo -> userInfo
-                                .oidcUserService(customOAuth2UserService)
+                                .oidcUserService(customOAuth2UserService)          // Google (OIDC)
+                                .userService(customStandardOAuth2UserService)      // Facebook, Twitter (standard OAuth2)
                         )
                         .successHandler(oAuth2SuccessHandler)
                 )

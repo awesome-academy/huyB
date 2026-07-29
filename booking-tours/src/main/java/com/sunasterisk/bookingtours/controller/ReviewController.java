@@ -12,6 +12,8 @@ import com.sunasterisk.bookingtours.service.LikeService;
 import com.sunasterisk.bookingtours.service.ReviewService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Reviews", description = "Viết và quản lý đánh giá tour")
 @Controller
 @RequestMapping("/reviews")
 @RequiredArgsConstructor

@@ -5,6 +5,8 @@ import com.sunasterisk.bookingtours.entity.UserBankAccount;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
 import com.sunasterisk.bookingtours.service.BankAccountService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -16,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
+@Tag(name = "Bank Accounts", description = "Quản lý tài khoản ngân hàng của người dùng")
 @Controller
 @RequestMapping("/profile/bank-accounts")
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class BankAccountController {
     /**
      * Hiển thị danh sách tài khoản ngân hàng + form thêm mới.
      */
+    @Operation(summary = "Danh sách tài khoản ngân hàng", description = "Hiển thị danh sách và form thêm mới")
     @GetMapping
     public String listAccounts(Authentication authentication, Model model) {
         List<UserBankAccount> accounts =
@@ -39,6 +43,7 @@ public class BankAccountController {
     /**
      * Xử lý thêm tài khoản ngân hàng mới.
      */
+    @Operation(summary = "Thêm tài khoản ngân hàng", description = "Validate và lưu tài khoản ngân hàng mới")
     @PostMapping
     public String addAccount(
             Authentication authentication,
@@ -64,6 +69,7 @@ public class BankAccountController {
     /**
      * Hiển thị form chỉnh sửa tài khoản ngân hàng.
      */
+    @Operation(summary = "Form chỉnh sửa tài khoản ngân hàng", description = "Pre-fill form với dữ liệu hiện tại")
     @GetMapping("/{id}/edit")
     public String showEditForm(
             Authentication authentication,
@@ -101,6 +107,7 @@ public class BankAccountController {
     /**
      * Xử lý cập nhật tài khoản ngân hàng.
      */
+    @Operation(summary = "Cập nhật tài khoản ngân hàng", description = "Validate và lưu thay đổi tài khoản ngân hàng")
     @PostMapping("/{id}/edit")
     public String updateAccount(
             Authentication authentication,
@@ -134,6 +141,7 @@ public class BankAccountController {
     /**
      * Xóa tài khoản ngân hàng.
      */
+    @Operation(summary = "Xóa tài khoản ngân hàng", description = "Xóa tài khoản ngân hàng theo id")
     @PostMapping("/{id}/delete")
     public String deleteAccount(
             Authentication authentication,
@@ -155,6 +163,7 @@ public class BankAccountController {
     /**
      * Đặt tài khoản làm mặc định.
      */
+    @Operation(summary = "Đặt tài khoản mặc định", description = "Đặt tài khoản ngân hàng làm mặc định cho thanh toán")
     @PostMapping("/{id}/set-default")
     public String setDefault(
             Authentication authentication,
