@@ -34,6 +34,7 @@ public class AdminCategoryController {
     /**
      * GET /admin/categories — Danh sách category có phân trang và tìm kiếm.
      */
+    @Operation(summary = "Danh sách category (Admin)", description = "Phân trang và tìm kiếm danh mục tour")
     @GetMapping
     public String listCategories(
             @RequestParam(value = "keyword", defaultValue = "") String keyword,
@@ -62,6 +63,7 @@ public class AdminCategoryController {
     /**
      * GET /admin/categories/new — Form tạo category mới.
      */
+    @Operation(summary = "Form tạo category", description = "Hiển thị form tạo danh mục mới")
     @GetMapping("/new")
     public String showCreateForm(Model model) {
         model.addAttribute("categoryRequest", new CategoryRequest());
@@ -72,6 +74,7 @@ public class AdminCategoryController {
     /**
      * POST /admin/categories — Lưu category mới.
      */
+    @Operation(summary = "Tạo category", description = "Validate và lưu danh mục tour mới")
     @PostMapping
     public String createCategory(
             @Valid @ModelAttribute("categoryRequest") CategoryRequest request,
@@ -104,6 +107,7 @@ public class AdminCategoryController {
     /**
      * GET /admin/categories/{id}/edit — Form chỉnh sửa category.
      */
+    @Operation(summary = "Form chỉnh sửa category", description = "Pre-fill form với dữ liệu category hiện tại")
     @GetMapping("/{id}/edit")
     public String showEditForm(@PathVariable Long id, Model model) {
         Category category = categoryService.getById(id);
@@ -121,6 +125,7 @@ public class AdminCategoryController {
     /**
      * POST /admin/categories/{id} — Cập nhật category.
      */
+    @Operation(summary = "Cập nhật category", description = "Validate và lưu thay đổi danh mục tour")
     @PostMapping("/{id}")
     public String updateCategory(
             @PathVariable Long id,
@@ -156,6 +161,7 @@ public class AdminCategoryController {
     /**
      * POST /admin/categories/{id}/delete — Xóa category.
      */
+    @Operation(summary = "Xóa category", description = "Xóa danh mục tour theo id")
     @PostMapping("/{id}/delete")
     public String deleteCategory(
             @PathVariable Long id,

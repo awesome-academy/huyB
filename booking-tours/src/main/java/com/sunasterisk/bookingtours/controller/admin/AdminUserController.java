@@ -30,6 +30,7 @@ public class AdminUserController {
     /**
      * GET /admin/users — Danh sách user có phân trang và tìm kiếm.
      */
+    @Operation(summary = "Danh sách user (Admin)", description = "Phân trang và tìm kiếm tài khoản người dùng")
     @GetMapping
     public String listUsers(
             @RequestParam(value = "keyword", defaultValue = "") String keyword,
@@ -59,6 +60,7 @@ public class AdminUserController {
      * {@code &}, {@code =}, {@code #}, {@code %}, khoảng trắng, v.v.).
      * </p>
      */
+    @Operation(summary = "Khoá/mở khoá tài khoản", description = "Admin khoá hoặc mở khoá tài khoản user, không thể tự khoá mình")
     @PostMapping("/{id}/toggle-lock")
     public String toggleLock(
             @PathVariable Long id,

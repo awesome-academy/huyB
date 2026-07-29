@@ -5,14 +5,25 @@
     <property name="LOG_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{requestId}] [%X{userEmail}] %-5level %logger{36} - %msg%n"/>
 
-    <!-- CONSOLE: shared appender, included only in dev profile -->
+    <!--
+        5 cấp độ log (từ thấp đến cao):
+          TRACE - theo dõi chi tiết luồng thực thi, chỉ dùng khi debug sâu
+          DEBUG - thông tin hỗ trợ debug trong quá trình phát triển
+          INFO  - sự kiện bình thường cần ghi nhận (khởi động, request, kết quả)
+          WARN  - tình huống bất thường nhưng app vẫn chạy được
+          ERROR - lỗi nghiêm trọng cần xử lý ngay
+        Logger chỉ ghi các level >= level được cấu hình.
+        Ví dụ: cấu hình INFO → bỏ qua TRACE và DEBUG, ghi INFO/WARN/ERROR.
+    -->
+
+    <!-- CONSOLE: appender dùng chung, chỉ kích hoạt ở profile dev -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
         </encoder>
     </appender>
 
-    <!-- APP_FILE: INFO+, daily + size rolling, 30d / 100MB per file, 2GB total -->
+    <!-- APP_FILE: INFO trở lên, cuộn theo ngày + kích thước, 30 ngày / 100MB mỗi file, tổng 2GB -->
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/app.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -29,7 +40,7 @@
         </filter>
     </appender>
 
-    <!-- ERROR_FILE: ERROR only, daily + size rolling, 30d / 50MB per file, 500MB total -->
+    <!-- ERROR_FILE: chỉ ERROR, cuộn theo ngày + kích thước, 30 ngày / 50MB mỗi file, tổng 500MB -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/error.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -48,7 +59,7 @@
         </filter>
     </appender>
 
-    <!-- AUDIT_FILE: security audit events, daily + size rolling, 30d / 50MB per file, 500MB total -->
+    <!-- AUDIT_FILE: sự kiện kiểm toán bảo mật, cuộn theo ngày + kích thước, 30 ngày / 50MB mỗi file, tổng 500MB -->
     <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/audit.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -62,17 +73,17 @@
         </encoder>
     </appender>
 
-    <!-- AUDIT logger — additivity=false keeps events out of root appenders -->
+    <!-- AUDIT logger — additivity=false giữ sự kiện không lan lên root appenders -->
     <logger name="AUDIT" level="INFO" additivity="false">
         <appender-ref ref="AUDIT_FILE"/>
     </logger>
 
-    <!-- Fallback root when no Spring profile is active (CI, tests, misconfigured deploy) -->
+    <!-- Root dự phòng khi không có Spring profile nào được kích hoạt (CI, tests, deploy cấu hình sai) -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
 
-    <!-- dev: DEBUG for app package + all three appenders + console -->
+    <!-- dev: DEBUG cho app package + cả ba appenders + console -->
     <springProfile name="dev">
         <logger name="com.sunasterisk.bookingtours" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE"/>
@@ -86,7 +97,7 @@
         </root>
     </springProfile>
 
-    <!-- prod: INFO for app package, no console -->
+    <!-- prod: INFO cho app package, không có console -->
     <springProfile name="prod">
         <logger name="com.sunasterisk.bookingtours" level="INFO" additivity="false">
             <appender-ref ref="APP_FILE"/>

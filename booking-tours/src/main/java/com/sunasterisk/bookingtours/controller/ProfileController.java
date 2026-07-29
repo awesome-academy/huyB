@@ -28,6 +28,7 @@ public class ProfileController {
     /**
      * Hiển thị trang hồ sơ cá nhân của user đang đăng nhập.
      */
+    @Operation(summary = "Trang hồ sơ cá nhân", description = "Hiển thị thông tin và form chỉnh sửa profile")
     @GetMapping
     public String showProfile(Authentication authentication, Model model) {
         User user = userService.getByEmail(authentication.getName());
@@ -46,6 +47,7 @@ public class ProfileController {
     /**
      * Xử lý cập nhật hồ sơ: full_name, phone, avatar_url.
      */
+    @Operation(summary = "Cập nhật hồ sơ", description = "Cập nhật full_name, phone, avatar_url")
     @PostMapping
     public String updateProfile(
             Authentication authentication,

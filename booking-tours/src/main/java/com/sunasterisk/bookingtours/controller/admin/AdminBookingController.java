@@ -40,6 +40,7 @@ public class AdminBookingController {
     /**
      * GET /admin/bookings - Danh sách booking có phân trang, filter status, từ khoá, ngày
      */
+    @Operation(summary = "Danh sách booking (Admin)", description = "Phân trang, filter status/keyword/ngày")
     @GetMapping
     public String listBookings(
             @RequestParam(value = "keyword", defaultValue = "") String keyword,
@@ -75,6 +76,7 @@ public class AdminBookingController {
     /**
      * GET /admin/bookings/{id} - Chi tiết booking
      */
+    @Operation(summary = "Chi tiết booking (Admin)", description = "Xem booking và payment đính kèm")
     @GetMapping("/{id}")
     public String bookingDetail(@PathVariable Long id, Model model) {
         Booking booking = bookingService.getBookingById(id);
@@ -87,6 +89,7 @@ public class AdminBookingController {
     /**
      * POST /admin/bookings/{id}/confirm - Xác nhận thanh toán → Booking CONFIRMED
      */
+    @Operation(summary = "Xác nhận booking", description = "Chuyển trạng thái booking sang CONFIRMED")
     @PostMapping("/{id}/confirm")
     public String confirmBooking(@PathVariable Long id,
                                  RedirectAttributes redirectAttributes) {
@@ -104,6 +107,7 @@ public class AdminBookingController {
     /**
      * POST /admin/bookings/{id}/cancel - Admin hủy booking → CANCELLED
      */
+    @Operation(summary = "Hủy booking (Admin)", description = "Admin hủy booking, chuyển sang CANCELLED")
     @PostMapping("/{id}/cancel")
     public String cancelBooking(@PathVariable Long id,
                                 RedirectAttributes redirectAttributes) {

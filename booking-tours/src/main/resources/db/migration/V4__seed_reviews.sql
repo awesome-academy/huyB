@@ -33,7 +33,7 @@ VALUES
         'PUBLISHED', 214, '2026-02-03 07:15:00', '2026-02-03 07:15:00'
     ),
     (
-        4, 'NEWS',
+        1, 'NEWS',
         'Phú Quốc mở thêm 5 tuyến cáp treo mới – Du lịch đảo ngọc bùng nổ 2026',
         'Theo thông tin từ UBND tỉnh Kiên Giang, Phú Quốc sẽ khánh thành thêm 5 tuyến cáp treo '
             'mới trong năm 2026, kết nối các đảo nhỏ quanh Hòn Thơm. Lượng khách quốc tế đến '
@@ -42,7 +42,7 @@ VALUES
         'PUBLISHED', 67, '2026-02-14 09:00:00', '2026-02-14 09:00:00'
     ),
     (
-        4, 'FOOD',
+        1, 'FOOD',
         'Bún bò Huế chuẩn gốc – Linh hồn ẩm thực cố đô',
         'Không giống bún bò ở Sài Gòn hay Hà Nội, bún bò Huế chuẩn gốc có nước dùng đậm đà '
             'vị sả, mắm ruốc, ớt sa tế đặc trưng, miếng chả cua viên tròn đầy. '
@@ -69,7 +69,7 @@ VALUES
         'PUBLISHED', 43, '2026-04-05 11:00:00', '2026-04-05 11:00:00'
     ),
     (
-        4, 'PLACE',
+        1, 'PLACE',
         'Côn Đảo – Nơi lịch sử và thiên nhiên giao thoa',
         'Côn Đảo không chỉ là điểm đến của những ai muốn tìm về lịch sử hào hùng dân tộc '
             'mà còn là thiên đường sinh thái biển nguyên sơ bậc nhất Việt Nam. '
@@ -78,7 +78,7 @@ VALUES
         'PUBLISHED', 103, '2026-04-22 14:00:00', '2026-04-22 14:00:00'
     ),
     (
-        4, 'FOOD',
+        1, 'FOOD',
         'Hải sản Nha Trang – Tươi sống và đậm vị biển khơi',
         'Chợ đêm Nha Trang về đêm rực rỡ ánh đèn và thơm lừng mùi hải sản nướng. '
             'Tôm hùm Alaska nướng bơ tỏi, cua Hoàng Đế hấp bia, sò điệp nướng mỡ hành – '

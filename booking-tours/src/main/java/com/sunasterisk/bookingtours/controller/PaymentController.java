@@ -54,6 +54,7 @@ public class PaymentController {
      * @param model     Spring MVC model
      * @return view {@code bookings/pay}
      */
+    @Operation(summary = "Trang thanh toán", description = "Hiển thị thông tin booking và form nhập mã giao dịch")
     @GetMapping("/bookings/{bookingId}/pay")
     public String showPaymentForm(
             @PathVariable Long bookingId,
@@ -110,6 +111,7 @@ public class PaymentController {
      * @param redirectAttrs  flash attributes
      * @return redirect tới trang chi tiết booking hoặc render lại form nếu lỗi
      */
+    @Operation(summary = "Tạo payment", description = "Tạo Payment PENDING chờ admin xác nhận")
     @PostMapping("/bookings/{bookingId}/pay")
     public String submitPayment(
             @PathVariable Long bookingId,

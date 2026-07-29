@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class LoggingConfig {
 
-    // Spring Security's FilterChainProxy sits at -100 (SecurityProperties.DEFAULT_FILTER_ORDER).
-    // Running at -50 ensures JWT authentication has already populated SecurityContextHolder,
-    // so MDC picks up the real userEmail for authenticated requests.
+    // FilterChainProxy của Spring Security chạy ở thứ tự -100 (SecurityProperties.DEFAULT_FILTER_ORDER).
+    // Chạy ở -50 đảm bảo JWT authentication đã ghi vào SecurityContextHolder trước,
+    // để MDC lấy được userEmail thực của các request đã xác thực.
     private static final int MDC_FILTER_ORDER = -50;
 
     @Bean

@@ -61,6 +61,7 @@ public class AdminTourController {
     /**
      * GET /admin/tours — Danh sách tour có phân trang và tìm kiếm theo tên / điểm đến.
      */
+    @Operation(summary = "Danh sách tour (Admin)", description = "Phân trang và tìm kiếm tour theo tên/địa điểm")
     @GetMapping
     public String listTours(
             @RequestParam(value = "keyword", defaultValue = "") String keyword,
@@ -87,6 +88,7 @@ public class AdminTourController {
     /**
      * GET /admin/tours/new — Hiển thị form tạo tour mới.
      */
+    @Operation(summary = "Form tạo tour", description = "Hiển thị form tạo tour mới với categories và statuses")
     @GetMapping("/new")
     public String showCreateForm(Model model) {
         model.addAttribute("tourRequest", new TourRequest());
@@ -102,6 +104,7 @@ public class AdminTourController {
      * được ghi vào {@code tourRequest.thumbnailUrl} trước khi gọi service.
      * Nếu không upload, trường này bị bỏ qua (null).
      */
+    @Operation(summary = "Tạo tour mới", description = "Validate, upload thumbnail và lưu tour mới")
     @PostMapping
     public String createTour(
             @Valid @ModelAttribute("tourRequest") TourRequest request,
@@ -159,6 +162,7 @@ public class AdminTourController {
      * GET /admin/tours/{id}/edit — Hiển thị form chỉnh sửa tour.
      * Map dữ liệu tour hiện tại vào {@link TourRequest} để pre-fill form.
      */
+    @Operation(summary = "Form chỉnh sửa tour", description = "Pre-fill form với dữ liệu tour hiện tại")
     @GetMapping("/{id}/edit")
     public String showEditForm(@PathVariable Long id, Model model) {
         Tour tour = tourService.getById(id);
@@ -190,6 +194,7 @@ public class AdminTourController {
      * <p>Nếu admin upload ảnh mới, ảnh cũ sẽ bị xóa khỏi filesystem (best-effort)
      * và URL được cập nhật. Nếu không upload, giữ nguyên thumbnail cũ qua hidden field.
      */
+    @Operation(summary = "Cập nhật tour", description = "Validate, xử lý thumbnail upload và lưu thay đổi tour")
     @PostMapping("/{id}")
     public String updateTour(
             @PathVariable Long id,
@@ -257,6 +262,7 @@ public class AdminTourController {
      * POST /admin/tours/{id}/delete — Xoá tour.
      * Cũng xóa thumbnail file khỏi filesystem nếu có (best-effort).
      */
+    @Operation(summary = "Xóa tour", description = "Xóa tour và thumbnail trên filesystem")
     @PostMapping("/{id}/delete")
     public String deleteTour(
             @PathVariable Long id,

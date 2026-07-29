@@ -88,11 +88,19 @@
                             </button>
                         </div>
 
-                        <!-- OAuth2 Google -->
-                        <div class="d-grid">
+                        <!-- OAuth2 Social Buttons -->
+                        <div class="d-grid gap-2">
                             <a th:href="@{/oauth2/authorization/google}"
                                class="btn btn-outline-danger btn-lg">
                                 <i class="bi bi-google me-2"></i>Continue with Google
+                            </a>
+                            <a th:href="@{/oauth2/authorization/facebook}"
+                               class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-facebook me-2"></i>Continue with Facebook
+                            </a>
+                            <a th:href="@{/oauth2/authorization/twitter}"
+                               class="btn btn-outline-dark btn-lg">
+                                <i class="bi bi-twitter-x me-2"></i>Continue with Twitter
                             </a>
                         </div>
 

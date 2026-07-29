@@ -45,6 +45,7 @@ public class TourController {
      * @param model      Spring MVC model
      * @return view name
      */
+    @Operation(summary = "Danh sách tour công khai", description = "Phân trang, lọc theo category, tìm kiếm theo tên/địa điểm")
     @GetMapping
     public String listTours(
             @RequestParam(value = "keyword", defaultValue = "") String keyword,
@@ -80,6 +81,7 @@ public class TourController {
      * @param model Spring MVC model
      * @return view name
      */
+    @Operation(summary = "Chi tiết tour công khai", description = "Chỉ hiển thị tour ACTIVE")
     @GetMapping("/{id}")
     public String tourDetail(@PathVariable Long id, Authentication authentication, Model model) {
         Tour tour = tourService.getPublicById(id);
@@ -111,6 +113,7 @@ public class TourController {
      * @param redirectAttributes flash messages
      * @return redirect về trang chi tiết tour
      */
+    @Operation(summary = "Rating tour", description = "User rating tour 1–5 sao, upsert nếu đã rating trước đó")
     @PostMapping("/{id}/rate")
     public String rateTour(@PathVariable Long id,
                            @Valid @ModelAttribute RatingRequest ratingRequest,

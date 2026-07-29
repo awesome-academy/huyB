@@ -33,6 +33,7 @@ public class AdminReviewController {
     /**
      * GET /admin/reviews — Danh sách tất cả review, filter theo type & status
      */
+    @Operation(summary = "Danh sách review (Admin)", description = "Xem tất cả review, filter theo type và status")
     @GetMapping
     public String list(
             @RequestParam(value = "reviewType", required = false) ReviewType reviewType,
@@ -61,6 +62,7 @@ public class AdminReviewController {
     /**
      * POST /admin/reviews/{id}/hide — Ẩn review vi phạm
      */
+    @Operation(summary = "Ẩn review", description = "Ẩn review vi phạm nội dung")
     @PostMapping("/{id}/hide")
     public String hide(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -76,6 +78,7 @@ public class AdminReviewController {
     /**
      * POST /admin/reviews/{id}/restore — Khôi phục review đã ẩn
      */
+    @Operation(summary = "Khôi phục review", description = "Khôi phục review đã bị ẩn")
     @PostMapping("/{id}/restore")
     public String restore(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -91,6 +94,7 @@ public class AdminReviewController {
     /**
      * POST /admin/reviews/{id}/delete — Xóa hẳn review vi phạm
      */
+    @Operation(summary = "Xóa review", description = "Xóa vĩnh viễn review vi phạm")
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {

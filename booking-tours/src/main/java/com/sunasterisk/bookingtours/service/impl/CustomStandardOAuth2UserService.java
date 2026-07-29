@@ -54,7 +54,11 @@ public class CustomStandardOAuth2UserService implements OAuth2UserService<OAuth2
         String avatarUrl = null;
 
         if (provider == OAuthProvider.FACEBOOK) {
-            providerUserId = String.valueOf(oAuth2User.getAttribute("id"));
+            Object idAttr = oAuth2User.getAttribute("id");
+            if (idAttr == null) {
+                throw new OAuth2AuthenticationException("Facebook user-info response missing 'id' field");
+            }
+            providerUserId = String.valueOf(idAttr);
             email = oAuth2User.getAttribute("email");
             name = oAuth2User.getAttribute("name");
             if (email == null || email.isBlank()) {
@@ -92,17 +96,14 @@ public class CustomStandardOAuth2UserService implements OAuth2UserService<OAuth2
 
         log.info("[OAuth] Login successful: provider={}, userId={}, role={}", provider, user.getId(), roleName);
 
-        // For Twitter, attributes["data"] is a nested Map — authentication.getName() would return its
-        // toString(), breaking JWT subject lookup. Inject a flat "email" attribute and use it as the key
-        // so getName() returns the actual email, consistent with Facebook ("id") and Google ("email").
+        // Facebook "id" là numeric user ID, Twitter "data" là nested Map — cả hai không thể dùng
+        // trực tiếp làm nameAttributeKey vì authentication.getName() sẽ trả về ID số hoặc
+        // Map.toString() thay vì email. JwtAuthenticationFilter tìm user theo email → sẽ không tìm thấy.
+        // Inject "synthetic_email" vào attributes và dùng nó làm key cho cả hai provider,
+        // đảm bảo getName() luôn trả về email đã lưu trong DB.
         Map<String, Object> attrs = new HashMap<>(oAuth2User.getAttributes());
-        String nameAttributeKey;
-        if (provider == OAuthProvider.TWITTER) {
-            attrs.put("synthetic_email", email);
-            nameAttributeKey = "synthetic_email";
-        } else {
-            nameAttributeKey = "id";
-        }
+        attrs.put("synthetic_email", email);
+        String nameAttributeKey = "synthetic_email";
 
         return new DefaultOAuth2User(
                 List.of(new SimpleGrantedAuthority(roleName)),
