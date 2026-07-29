@@ -1,0 +1,11 @@
+{
+  "commands": [
+    {
+      "command": "mvn test",
+      "exitCode": 0,
+      "status": "pass",
+      "summary": "Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS (BookingToursApplicationTests context loads with embedded ActiveMQ + RabbitMQ stubs)",
+      "ts": "2026-07-29T14:49:10.000Z"
+    }
+  ]
+}

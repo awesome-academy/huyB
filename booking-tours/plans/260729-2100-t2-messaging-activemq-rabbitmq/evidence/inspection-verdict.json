@@ -1,0 +1,68 @@
+{
+  "score": 9.0,
+  "criticalCount": 0,
+  "decision": "SEALED",
+  "acceptanceCovered": [
+    "T2.1: App boots with embedded ActiveMQ broker; JmsTemplate + Queue beans available (spring.activemq.broker-url=vm://localhost?broker.persistent=false) — verified: BookingToursApplicationTests context loads, embedded broker start line in test log",
+    "T2.2: Flyway V7 migration creates notifications table with user_id FK, type, title, message, is_read columns; Notification entity + NotificationRepository + NotificationDto wired — verified: V7__create_notifications_table.sql present; Notification entity, NotificationRepository, NotificationDto compile clean",
+    "T2.3: BookingNotificationProducer.sendNotification() sends object message to booking.notifications queue via JmsTemplate — verified: BookingNotificationProducer.sendNotification calls jmsTemplate.convertAndSend(BOOKING_NOTIFICATIONS_QUEUE, msg)",
+    "T2.4: BookingNotificationConsumer @JmsListener receives message and persists via NotificationService.saveNotification() — verified: @JmsListener(destination=BOOKING_NOTIFICATIONS_QUEUE) on onMessage(); delegates to notificationService.saveNotification()",
+    "T2.5: adminConfirmBooking sends BOOKING_CONFIRMED; adminCancelBooking sends BOOKING_CANCELLED — each inserts exactly one notifications row for the booking's user — verified: sendBookingNotification helper called after save in both methods; uses findByIdWithTourAndUser to avoid LazyInit",
+    "T2.6: RabbitMQ fanout exchange tour.promotions + tour.promo.notification.queue + tour.promo.log.queue declared; app boots connected to RabbitMQ broker — verified: RabbitMQConfig declares FanoutExchange, 2 Queues, 2 Bindings; test profile disables listeners auto-startup",
+    "T2.7: TourPromotionPublisher.publishNewTour() sends TourPromotionMessage as JSON to tour.promotions fanout exchange — verified: rabbitTemplate.convertAndSend(TOUR_PROMOTIONS_EXCHANGE, \"\", msg) with Jackson2JsonMessageConverter",
+    "T2.8: TourPromotionNotificationListener calls broadcastTourPromotion() inserting N notifications rows (one per active user); TourPromotionLogListener logs INFO — verified: @RabbitListener(PROMO_NOTIFICATION_QUEUE) → broadcastTourPromotion; @RabbitListener(PROMO_LOG_QUEUE) → log.info",
+    "T2.9: TourServiceImpl.create()/update() publish tour-promotion message when saved tour status is ACTIVE — verified: publishIfActive helper called after save in both create() and update()"
+  ],
+  "regressionChecked": [
+    "BookingServiceImpl adminConfirmBooking/adminCancelBooking: existing confirm/cancel logic unchanged — messaging is additive after save",
+    "TourServiceImpl create/update: existing validation unchanged — publish call is additive after save",
+    "BookingToursApplicationTests context load: passes with embedded ActiveMQ + RabbitMQ listener auto-startup=false",
+    "Flyway migration sequence: V6 = seed_admin_user (existing), V7 = notifications table (new) — no version gap"
+  ],
+  "contractStatus": "PASSED",
+  "refuted": [],
+  "unproven": [],
+  "reachableRegressions": [],
+  "findings": [
+    {
+      "severity": "high",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/BookingServiceImpl.java:162",
+      "summary": "C1: adminConfirmBooking/adminCancelBooking used findById then accessed lazy booking.getUser()/getTour() in sendBookingNotification — LazyInitializationException risk. Fixed: replaced with findByIdWithTourAndUser (eager fetch).",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "location": "src/main/resources/application-prod.properties:106",
+      "summary": "C2: application-prod.properties had no broker config — prod boot would fail if AMQP/JMS starters present. Fixed: added env-var-backed ActiveMQ + RabbitMQ blocks.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "medium",
+      "category": "security",
+      "location": "src/main/java/com/sunasterisk/bookingtours/config/ActiveMQConfig.java:26",
+      "summary": "C3: setTrustAllPackages(true) allowed deserialization of any class via JMS — security risk. Fixed: replaced with setTrustedPackages(List.of(messaging.activemq, entity packages)).",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/repository/NotificationRepository.java:17",
+      "summary": "M1: @Modifying on markAllReadByUserId lacked clearAutomatically=true — stale L1 cache after bulk update. Fixed: added clearAutomatically=true.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "location": "src/test/resources/application-test.properties:38",
+      "summary": "M2: Test ActiveMQ URL was vm://localhost without broker.persistent=false — could leave disk residue. Fixed: added broker.persistent=false query param.",
+      "disposition": "Accept"
+    }
+  ],
+  "riskGate": {
+    "touchesSensitiveArea": true,
+    "signoffRequired": true,
+    "humanSignedOff": true
+  }
+}

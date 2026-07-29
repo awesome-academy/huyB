@@ -1,0 +1,50 @@
+{
+  "task": "Day 2 (Tuesday) — Messaging: ActiveMQ + RabbitMQ (T2.1–T2.9): embedded ActiveMQ broker for booking notifications + RabbitMQ fanout for tour promotions + notifications DB table + integration into BookingServiceImpl and TourServiceImpl",
+  "mode": "interactive",
+  "acceptanceCriteria": [
+    "T2.1: App boots with embedded ActiveMQ broker; JmsTemplate + Queue beans available (spring.activemq.broker-url=vm://localhost?broker.persistent=false)",
+    "T2.2: Flyway V7 migration creates notifications table with user_id FK, type, title, message, is_read columns; Notification entity + NotificationRepository + NotificationDto wired",
+    "T2.3: BookingNotificationProducer.sendNotification() sends object message to booking.notifications queue via JmsTemplate",
+    "T2.4: BookingNotificationConsumer @JmsListener receives message and persists via NotificationService.saveNotification()",
+    "T2.5: adminConfirmBooking sends BOOKING_CONFIRMED; adminCancelBooking sends BOOKING_CANCELLED — each inserts exactly one notifications row for the booking's user",
+    "T2.6: RabbitMQ fanout exchange tour.promotions + tour.promo.notification.queue + tour.promo.log.queue declared; app boots connected to RabbitMQ broker",
+    "T2.7: TourPromotionPublisher.publishNewTour() sends TourPromotionMessage as JSON to tour.promotions fanout exchange",
+    "T2.8: TourPromotionNotificationListener calls broadcastTourPromotion() inserting N notifications rows (one per active user); TourPromotionLogListener logs INFO",
+    "T2.9: TourServiceImpl.create()/update() publish tour-promotion message when saved tour status is ACTIVE"
+  ],
+  "touchpoints": [
+    "pom.xml",
+    "src/main/java/com/sunasterisk/bookingtours/config/ActiveMQConfig.java",
+    "src/main/java/com/sunasterisk/bookingtours/config/RabbitMQConfig.java",
+    "src/main/resources/db/migration/V7__create_notifications_table.sql",
+    "src/main/java/com/sunasterisk/bookingtours/entity/Notification.java",
+    "src/main/java/com/sunasterisk/bookingtours/repository/NotificationRepository.java",
+    "src/main/java/com/sunasterisk/bookingtours/dto/NotificationDto.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/NotificationService.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/impl/NotificationServiceImpl.java",
+    "src/main/java/com/sunasterisk/bookingtours/repository/UserRepository.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationMessage.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationProducer.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationConsumer.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionMessage.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionPublisher.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionNotificationListener.java",
+    "src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionLogListener.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/impl/BookingServiceImpl.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/impl/TourServiceImpl.java",
+    "src/main/resources/application-dev.properties",
+    "src/main/resources/application-prod.properties",
+    "src/test/resources/application-test.properties"
+  ],
+  "blastRadius": [
+    "BookingServiceImpl: adminConfirmBooking + adminCancelBooking — additive messaging side-effects only, no logic changes",
+    "TourServiceImpl: create + update — additive publish call after save, no validation changes",
+    "UserRepository: new findAllActiveUserIds() query — additive only",
+    "Test context: application-test.properties gains broker stubs + listener auto-startup=false"
+  ],
+  "contracts": [
+    "JMS: BookingNotificationMessage (Serializable) → booking.notifications queue (point-to-point)",
+    "AMQP: TourPromotionMessage (JSON) → tour.promotions fanout exchange → 2 queues",
+    "NotificationService: saveNotification, getUnreadCount, getNotifications, markAllRead, broadcastTourPromotion"
+  ]
+}
