@@ -92,7 +92,12 @@ public class JwtUtils {
                 .append("; Path=/")
                 .append("; Max-Age=").append(maxAgeSeconds)
                 .append("; Expires=").append(expires)
-                .append("; SameSite=Strict");
+                // SameSite=Lax (not Strict) is required for OAuth2 redirect flows: when the browser
+                // follows the post-OAuth2 redirect back to this app, the navigation chain originated
+                // from the provider (facebook.com, etc.) and SameSite=Strict causes the JWT cookie
+                // to be blocked on that first same-site hop. Lax still blocks cross-site AJAX/POST
+                // requests; the CSRF token provides the additional defense layer.
+                .append("; SameSite=Lax");
         if (cookieSecure) {
             sb.append("; Secure");
         }

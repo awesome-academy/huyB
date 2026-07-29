@@ -63,7 +63,7 @@ public class SecurityConfig {
         http
                 // Bật CSRF với CookieCsrfTokenRepository (token lưu trong XSRF-TOKEN cookie).
                 // Thymeleaf th:action tự inject hidden _csrf field → form submit hợp lệ.
-                // Kết hợp HttpOnly + SameSite=Strict + CSRF token = defense-in-depth 3 lớp.
+                // Kết hợp HttpOnly + SameSite=Lax + CSRF token = defense-in-depth 3 lớp.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
