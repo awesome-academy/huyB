@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -38,10 +37,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * LIMIT/OFFSET đúng cách thay vì load toàn bộ dữ liệu vào bộ nhớ.
      * </p>
      */
-    /** Lấy tất cả id của user đang active — dùng cho broadcast notification. */
-    @Query("SELECT u.id FROM User u WHERE u.isActive = true")
-    List<Long> findAllActiveUserIds();
-
     @EntityGraph(attributePaths = "role")
     @Query("SELECT u FROM User u " +
             "WHERE (:keyword IS NULL OR :keyword = '' " +
