@@ -122,7 +122,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                // WebSocket SockJS handshake — JWT cookie xác thực ở HTTP layer
+                                "/ws/**"
                         ).permitAll()
 
                         // Reviews: chỉ trang danh sách và trang chi tiết là công khai.
@@ -181,6 +183,8 @@ public class SecurityConfig {
                                         + "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                                         + "font-src 'self' https://cdn.jsdelivr.net; "
                                         + "img-src 'self' data: https:; "
+                                        // ws:/wss: cho SockJS WebSocket; cdn.jsdelivr.net cho SockJS XHR polling
+                                        + "connect-src 'self' ws: wss: https://cdn.jsdelivr.net; "
                                         + "form-action 'self'; "
                                         + "frame-ancestors 'none'; "
                                         + "base-uri 'self'"))
