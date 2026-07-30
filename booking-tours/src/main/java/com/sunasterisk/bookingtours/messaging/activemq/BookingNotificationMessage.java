@@ -3,6 +3,7 @@ package com.sunasterisk.bookingtours.messaging.activemq;
 import com.sunasterisk.bookingtours.entity.Notification.NotificationType;
 import lombok.*;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Getter
@@ -12,6 +13,7 @@ import java.io.Serializable;
 @Builder
 public class BookingNotificationMessage implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private Long userId;
