@@ -4,22 +4,34 @@ import com.sunasterisk.bookingtours.dto.NotificationDto;
 import com.sunasterisk.bookingtours.entity.Notification;
 import com.sunasterisk.bookingtours.entity.Notification.NotificationType;
 import com.sunasterisk.bookingtours.repository.NotificationRepository;
+import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Triển khai {@link NotificationService}, xử lý toàn bộ logic tạo và quản lý notification. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    /** Tạo notification mới với trạng thái chưa đọc và lưu vào DB. */
+    /**
+     * Tạo notification mới và push real-time qua WebSocket đến user.
+     * Chạy trong notif-async thread pool để không block HTTP response của caller.
+     * Push xảy ra sau save; nếu user không kết nối WebSocket, message bị bỏ qua (không lỗi).
+     */
     @Override
+    @Async("notificationExecutor")
     @Transactional
     public void saveNotification(Long userId, NotificationType type, String title, String message) {
         Notification notification = Notification.builder()
@@ -29,7 +41,20 @@ public class NotificationServiceImpl implements NotificationService {
                 .message(message)
                 .isRead(false)
                 .build();
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+
+        // Push real-time tới user đang kết nối WebSocket — principal name là email
+        userRepository.findById(userId).ifPresent(user -> {
+            try {
+                messagingTemplate.convertAndSendToUser(
+                        user.getEmail(),
+                        "/queue/notifications",
+                        NotificationDto.from(saved)
+                );
+            } catch (Exception e) {
+                log.warn("WebSocket push failed for userId={}: {}", userId, e.getMessage());
+            }
+        });
     }
 
     /** {@code readOnly = true} giúp Hibernate bỏ qua dirty checking, tăng hiệu năng truy vấn. */
@@ -56,9 +81,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     /**
      * Insert TOUR_PROMOTION notification cho tất cả user active bằng một native INSERT ... SELECT.
-     * DB làm toàn bộ việc — không load id nào lên app, không giữ entity trong persistence context.
+     * Chạy async để không block RabbitMQ listener thread.
      */
     @Override
+    @Async("notificationExecutor")
     @Transactional
     public void broadcastTourPromotion(Long tourId, String tourTitle) {
         String title   = "Tour mới: " + tourTitle;
