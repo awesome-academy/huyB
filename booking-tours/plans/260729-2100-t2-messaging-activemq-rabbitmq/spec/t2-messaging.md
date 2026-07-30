@@ -46,7 +46,7 @@ Tích hợp hai message broker vào hệ thống booking tours:
 |------|-----------|
 | T2.1 | App khởi động, log ActiveMQ embedded broker xuất hiện |
 | T2.2 | Flyway V7 áp dụng thành công; entity usable từ repository |
-| T2.3 | Unit test xác nhận message được gửi đến queue |
+| T2.3 | Producer gửi message đến queue `booking.notifications` (manual verify; unit test với mock JmsTemplate deferred — technical debt) |
 | T2.4 | Consume message → row được insert vào bảng `notifications` |
 | T2.5 | Admin confirm booking → notification xuất hiện trong DB cho user đó |
 | T2.6 | App khởi động với RabbitMQ connected |

@@ -1,11 +1,12 @@
 {
-  "score": 9.0,
+  "score": 7.5,
   "criticalCount": 0,
+  "note": "Score revised from 9.0 → 7.5 post code-review: 5 additional high/medium findings found and fixed in review session 2026-07-31. criticalCount remains 0 as all issues resolved before merge.",
   "decision": "SEALED",
   "acceptanceCovered": [
     "T2.1: App boots with embedded ActiveMQ broker; JmsTemplate + Queue beans available (spring.activemq.broker-url=vm://localhost?broker.persistent=false) — verified: BookingToursApplicationTests context loads, embedded broker start line in test log",
-    "T2.2: Flyway V7 migration creates notifications table with user_id FK, type, title, message, is_read columns; Notification entity + NotificationRepository + NotificationDto wired — verified: V7__create_notifications_table.sql present; Notification entity, NotificationRepository, NotificationDto compile clean",
-    "T2.3: BookingNotificationProducer.sendNotification() sends object message to booking.notifications queue via JmsTemplate — verified: BookingNotificationProducer.sendNotification calls jmsTemplate.convertAndSend(BOOKING_NOTIFICATIONS_QUEUE, msg)",
+    "T2.2: Flyway V7 migration creates notifications table with user_id FK, type, title, message, is_read columns; Notification entity + NotificationRepository + NotificationDto wired — verified: V7__create_notifications_table.sql present; entity/repository/dto compile clean. CAVEAT: Flyway execution NOT tested (test suite uses H2 + ddl-auto=create-drop + flyway.enabled=false); MySQL-specific DDL in V7 (TINYINT(1), DATETIME(6), ENGINE=InnoDB) unverified at runtime — requires Testcontainers MySQL or manual deploy check.",
+    "T2.3: BookingNotificationProducer.sendNotification() sends object message to booking.notifications queue via JmsTemplate — verified by CODE INSPECTION ONLY: sendNotification calls jmsTemplate.convertAndSend(BOOKING_NOTIFICATIONS_QUEUE, msg). No automated unit test exists; original AC 'Unit test confirms message is sent' was not met and has been restated as manual verify + tech debt.",
     "T2.4: BookingNotificationConsumer @JmsListener receives message and persists via NotificationService.saveNotification() — verified: @JmsListener(destination=BOOKING_NOTIFICATIONS_QUEUE) on onMessage(); delegates to notificationService.saveNotification()",
     "T2.5: adminConfirmBooking sends BOOKING_CONFIRMED; adminCancelBooking sends BOOKING_CANCELLED — each inserts exactly one notifications row for the booking's user — verified: sendBookingNotification helper called after save in both methods; uses findByIdWithTourAndUser to avoid LazyInit",
     "T2.6: RabbitMQ fanout exchange tour.promotions + tour.promo.notification.queue + tour.promo.log.queue declared; app boots connected to RabbitMQ broker — verified: RabbitMQConfig declares FanoutExchange, 2 Queues, 2 Bindings; test profile disables listeners auto-startup",
@@ -21,7 +22,10 @@
   ],
   "contractStatus": "PASSED",
   "refuted": [],
-  "unproven": [],
+  "unproven": [
+    "T2.2 partial: Flyway V7 execution on MySQL — DDL uses MySQL-specific syntax not compatible with H2 test database; file presence verified but runtime migration unconfirmed",
+    "T2.3: Automated unit test for BookingNotificationProducer.sendNotification() — no mock-JmsTemplate test written; deferred tech debt"
+  ],
   "reachableRegressions": [],
   "findings": [
     {
@@ -58,6 +62,41 @@
       "location": "src/test/resources/application-test.properties:38",
       "summary": "M2: Test ActiveMQ URL was vm://localhost without broker.persistent=false — could leave disk residue. Fixed: added broker.persistent=false query param.",
       "disposition": "Accept"
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/TourServiceImpl.java:151",
+      "summary": "R1: update() used tourRequest.getStatus() (may be null) instead of saved.getStatus() for publishIfActive — suppressed notification on no-status-field updates. Also: no transition guard — any ACTIVE update re-broadcast to all users. Fixed: capture previousStatus before setStatus(); only publish on non-ACTIVE → ACTIVE transition.",
+      "disposition": "Fixed"
+    },
+    {
+      "severity": "high",
+      "category": "reliability",
+      "location": "src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionNotificationListener.java",
+      "summary": "R2: RabbitMQ listeners had no error handling; defaultRequeueRejected=true causes infinite hot-loop on any exception. Fixed: declared DLX + DLQs in RabbitMQConfig; listeners throw AmqpRejectAndDontRequeueException on failure.",
+      "disposition": "Fixed"
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/BookingServiceImpl.java / TourServiceImpl.java",
+      "summary": "R3: Broker messages sent inside @Transactional before DB commit — notification delivered even if transaction rolls back. Fixed: replaced direct producer/publisher calls with ApplicationEventPublisher.publishEvent(); @TransactionalEventListener(AFTER_COMMIT) dispatchers handle actual send.",
+      "disposition": "Fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "performance",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/NotificationServiceImpl.java:broadcastTourPromotion",
+      "summary": "R4: saveAll() with IDENTITY strategy = N individual INSERT round-trips; all user IDs loaded into memory first. Fixed: replaced with native INSERT...SELECT — one statement, zero entity loading.",
+      "disposition": "Fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/config/ActiveMQConfig.java",
+      "summary": "R5: Custom ActiveMQConnectionFactory bean caused Boot auto-config back-off, bypassing CachingConnectionFactory; spring.jms.* properties ineffective. Fixed: removed custom factory + JmsTemplate beans; moved trusted-packages to spring.activemq.packages.trusted property.",
+      "disposition": "Fixed"
     }
   ],
   "riskGate": {

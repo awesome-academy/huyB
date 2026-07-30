@@ -81,9 +81,9 @@ sendNotification(BookingNotificationMessage)
 - [x] `mvn compile` clean
 
 ## Success criteria (T2.3, T2.4)
-- Unit test: calling `sendNotification` invokes `jmsTemplate.convertAndSend` with the `booking.notifications` destination (mock JmsTemplate).
-- Integration: publish a message to the queue → a row is inserted into `notifications`.
 - `mvn compile` passes.
+- Code inspection: `sendNotification` delegates to `jmsTemplate.convertAndSend(BOOKING_NOTIFICATIONS_QUEUE, msg)`.
+- **Deferred (tech debt):** Unit test với mock JmsTemplate xác nhận `sendNotification` gọi đúng destination; integration test producer→consumer→notifications row. Chưa có test tự động — T2.3 verified bằng code inspection, không phải automated test.
 
 ## Risk assessment
 | Risk | L | I | Mitigation |

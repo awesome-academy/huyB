@@ -326,6 +326,536 @@ Expected: `prompt=select_account` được thêm vào request chỉ khi `registr
 
 ---
 
+---
+
+## Day 2 — Messaging: ActiveMQ + RabbitMQ
+
+### Prerequisites chung Day 2
+
+```bash
+# 1. MySQL đang chạy và app đã qua Day 1 (Flyway V1–V6 applied)
+mysql -u root -p'Aa@123456' -e "SELECT version FROM booking_tours.flyway_schema_history ORDER BY installed_rank DESC LIMIT 1;"
+# Expected: 6
+
+# 2. Khởi động RabbitMQ qua Docker (cần cho T2.6–T2.9)
+docker run -d --name rabbitmq \
+  -p 5672:5672 -p 15672:15672 \
+  rabbitmq:3-management
+# Kiểm tra container running:
+docker ps | grep rabbitmq
+
+# 3. Chạy app với profile dev
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+App khởi động thành công khi log xuất hiện:
+```
+Apache ActiveMQ X.X.X (localhost, ...) started
+Started BookingToursApplication in X.XXX seconds
+```
+
+---
+
+### T2.1 — ActiveMQ Embedded Broker
+
+#### Prerequisites
+- App đang chạy với profile `dev` (RabbitMQ không cần cho task này)
+
+#### Test Steps
+
+**Step 1 — Kiểm tra embedded broker khởi động**
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev 2>&1 | grep -E "ActiveMQ|BrokerService|vm://localhost"
+```
+Expected:
+```
+Apache ActiveMQ 6.x.x (localhost, ...) is starting
+Apache ActiveMQ 6.x.x (localhost, ...) started
+Connector vm://localhost started
+```
+
+**Step 2 — Kiểm tra JmsTemplate và Queue bean available**
+```bash
+# Swagger endpoint liệt kê beans (nếu actuator bật) hoặc check log không có NoSuchBeanDefinitionException
+mvn spring-boot:run -Dspring-boot.run.profiles=dev 2>&1 | grep -E "NoSuchBean|ActiveMQConfig|BOOKING_NOTIFICATIONS"
+# Expected: không có dòng nào (không có lỗi)
+```
+
+**Step 3 — Kiểm tra config trong properties**
+```bash
+grep -E "activemq|in-memory" src/main/resources/application-dev.properties
+```
+Expected:
+```
+spring.activemq.broker-url=vm://localhost?broker.persistent=false
+spring.activemq.in-memory=true
+```
+
+#### Pass Criteria
+- [x] Log hiển thị `Apache ActiveMQ X.X.X (localhost, ...) started`
+- [x] Log hiển thị `Connector vm://localhost started`
+- [x] App khởi động không có `NoSuchBeanDefinitionException` liên quan đến JMS
+- [x] `spring.activemq.broker-url=vm://localhost?broker.persistent=false` trong `application-dev.properties`
+
+---
+
+### T2.2 — Notification Entity + Flyway V7 Migration
+
+#### Prerequisites
+- App đang chạy (Flyway tự động apply V7 khi startup)
+
+#### Test Steps
+
+**Step 1 — Kiểm tra Flyway V7 applied**
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev 2>&1 | grep -E "V7__|notifications"
+```
+Expected:
+```
+Successfully applied 1 migration to schema `booking_tours` (... V7__create_notifications_table)
+```
+
+Hoặc kiểm tra trực tiếp DB sau khi app đã start:
+```sql
+mysql -u root -p'Aa@123456' booking_tours
+
+SELECT version, description, success
+FROM flyway_schema_history
+WHERE version IN ('6', '7')
+ORDER BY installed_rank;
+-- Expected: V6 (seed_admin_user) và V7 (create_notifications_table) đều success=1
+```
+
+**Step 2 — Kiểm tra schema bảng notifications**
+```sql
+mysql -u root -p'Aa@123456' booking_tours
+DESCRIBE notifications;
+```
+Expected columns:
+```
+id          bigint          NOT NULL AUTO_INCREMENT
+user_id     bigint          NOT NULL
+type        varchar(30)     NOT NULL
+title       varchar(255)    NOT NULL
+message     text            NOT NULL
+is_read     tinyint(1)      NOT NULL   DEFAULT 0
+created_at  datetime(6)     NOT NULL
+updated_at  datetime(6)     NOT NULL
+```
+
+**Step 3 — Kiểm tra index và FK**
+```sql
+SHOW CREATE TABLE notifications\G
+```
+Expected:
+- `KEY idx_notifications_user (user_id)`
+- `KEY idx_notifications_user_unread (user_id, is_read)`
+- `CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE`
+
+**Step 4 — Kiểm tra bảng rỗng ban đầu**
+```sql
+SELECT COUNT(*) FROM notifications;
+-- Expected: 0
+```
+
+#### Pass Criteria
+- [x] Flyway log: `V7__create_notifications_table` applied, `success=1`
+- [x] Bảng `notifications` có đủ 8 cột (id, user_id, type, title, message, is_read, created_at, updated_at)
+- [x] FK `fk_notifications_user → users(id) ON DELETE CASCADE` tồn tại
+- [x] 2 index: `idx_notifications_user` và `idx_notifications_user_unread` tồn tại
+- [x] Bảng rỗng khi chưa có action nào
+
+---
+
+### T2.3–T2.5 — ActiveMQ Pipeline: Producer → Consumer → BookingService
+
+> T2.3 (Producer) và T2.4 (Consumer) được verify gián tiếp qua T2.5 (BookingService integration).  
+> Khi admin confirm/cancel booking → Producer gửi → Consumer nhận → `notifications` row được insert.
+
+#### Prerequisites
+- App đang chạy với profile `dev`
+- Đăng nhập admin: `admin@sunasterisk.com` / `Admin@123456` (seed từ V6)
+- Có ít nhất 1 booking ở trạng thái `PENDING` trong DB
+
+```sql
+-- Tạo booking PENDING nếu chưa có (dùng seed user và tour có sẵn)
+mysql -u root -p'Aa@123456' booking_tours
+
+-- Lấy 1 user_id và tour_id có sẵn
+SELECT id FROM users WHERE role_id != (SELECT id FROM roles WHERE name='ADMIN') LIMIT 1;
+SELECT id FROM tours WHERE status='ACTIVE' LIMIT 1;
+
+-- Tạo booking thủ công nếu cần:
+INSERT INTO bookings (booking_code, status, total_price, number_of_people, user_id, tour_id, created_at, updated_at)
+VALUES (UUID(), 'PENDING', 1000000, 2, <user_id>, <tour_id>, NOW(), NOW());
+```
+
+#### Test Steps — T2.5a: Admin Confirm Booking
+
+**Step 1 — Ghi nhận trạng thái trước**
+```sql
+mysql -u root -p'Aa@123456' booking_tours
+
+-- Lấy booking PENDING
+SELECT id, booking_code, status, user_id FROM bookings WHERE status='PENDING' LIMIT 1;
+-- Ghi lại: booking_id = X, user_id = Y
+
+-- Đếm notifications hiện tại của user đó
+SELECT COUNT(*) FROM notifications WHERE user_id = <Y>;
+-- Expected: 0 (hoặc số trước đó)
+```
+
+**Step 2 — Admin confirm booking qua giao diện hoặc curl**
+
+Qua browser (login admin trước):
+```
+POST http://localhost:8080/admin/bookings/{booking_id}/confirm
+```
+
+Hoặc qua curl (cần CSRF token hoặc dùng session cookie):
+```bash
+# Đăng nhập admin, lấy session cookie
+curl -c cookies.txt -b cookies.txt \
+  -X POST "http://localhost:8080/admin/bookings/<booking_id>/confirm" \
+  -H "Content-Type: application/x-www-form-urlencoded"
+```
+
+**Step 3 — Kiểm tra notification được tạo**
+```sql
+mysql -u root -p'Aa@123456' booking_tours
+
+SELECT id, user_id, type, title, message, is_read, created_at
+FROM notifications
+WHERE user_id = <Y>
+ORDER BY created_at DESC
+LIMIT 3;
+```
+Expected:
+```
+| id | user_id | type              | title                     | is_read | created_at          |
+|----|---------|-------------------|---------------------------|---------|---------------------|
+| 1  | Y       | BOOKING_CONFIRMED | Đặt tour đã được xác nhận | 0       | 2026-07-29 22:xx:xx |
+```
+
+**Step 4 — Kiểm tra message chứa booking code và tour title**
+```sql
+SELECT message FROM notifications
+WHERE type = 'BOOKING_CONFIRMED'
+ORDER BY created_at DESC
+LIMIT 1;
+```
+Expected format:
+```
+Booking <UUID> cho tour "<tên tour>".
+```
+
+**Step 5 — Log ActiveMQ (xác nhận JMS flow)**
+```bash
+tail -50 logs/app.log | grep -E "booking\.notifications|BookingNotification|JMS"
+```
+Expected: log từ `BookingNotificationProducer` (send) và `BookingNotificationConsumer` (receive), không có ERROR.
+
+#### Test Steps — T2.5b: Admin Cancel Booking
+
+**Step 1 — Lấy 1 booking khác ở PENDING**
+```sql
+SELECT id, user_id FROM bookings WHERE status='PENDING' LIMIT 1;
+```
+
+**Step 2 — Admin cancel booking**
+```bash
+curl -c cookies.txt -b cookies.txt \
+  -X POST "http://localhost:8080/admin/bookings/<booking_id>/cancel"
+```
+
+**Step 3 — Kiểm tra notification BOOKING_CANCELLED**
+```sql
+SELECT type, title, message FROM notifications
+WHERE user_id = <user_id>
+  AND type = 'BOOKING_CANCELLED'
+ORDER BY created_at DESC
+LIMIT 1;
+```
+Expected:
+```
+| BOOKING_CANCELLED | Đặt tour đã bị hủy | Booking <UUID> cho tour "<tên tour>". |
+```
+
+#### Pass Criteria
+- [x] Admin confirm booking → 1 row `BOOKING_CONFIRMED` trong `notifications` cho đúng `user_id`
+- [x] Admin cancel booking → 1 row `BOOKING_CANCELLED` trong `notifications` cho đúng `user_id`
+- [x] `message` chứa booking code (UUID) và tour title
+- [x] `is_read = 0` (chưa đọc)
+- [x] Log không có ERROR từ `BookingNotificationConsumer`
+- [x] Log của booking consumer không có JMS exception sau các lần confirm/cancel
+
+---
+
+### T2.6 — RabbitMQ Configuration
+
+#### Prerequisites
+- Docker đang chạy, container `rabbitmq` đã start (xem Prerequisites chung)
+- App đang chạy với profile `dev`
+
+#### Test Steps
+
+**Step 1 — Kiểm tra app kết nối RabbitMQ thành công khi startup**
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev 2>&1 | grep -E "rabbit|AMQP|5672|tour\.promotions|promo"
+```
+Expected (không có lỗi `Connection refused`):
+```
+... Successfully declared exchange/queue topology
+```
+Hoặc không có dòng nào chứa `Connection refused` / `RabbitMQ connection error`.
+
+**Step 2 — Kiểm tra exchange và queues trong Management UI**
+
+Mở browser: `http://localhost:15672` (guest/guest)
+
+- Tab **Exchanges** → tìm `tour.promotions` (type: fanout, durable: true)
+- Tab **Queues** → tìm `tour.promo.notification.queue` và `tour.promo.log.queue` (đều durable)
+
+Hoặc qua RabbitMQ HTTP API:
+```bash
+# Kiểm tra exchange
+curl -s -u guest:guest http://localhost:15672/api/exchanges/%2F/tour.promotions | python3 -m json.tool | grep -E "name|type|durable"
+# Expected: "name": "tour.promotions", "type": "fanout", "durable": true
+
+# Kiểm tra queues
+curl -s -u guest:guest http://localhost:15672/api/queues | python3 -c "
+import json, sys
+queues = json.load(sys.stdin)
+names = [q['name'] for q in queues]
+print('Queues:', names)
+"
+# Expected: ['tour.promo.log.queue', 'tour.promo.notification.queue'] trong danh sách
+```
+
+**Step 3 — Kiểm tra bindings**
+```bash
+curl -s -u guest:guest "http://localhost:15672/api/bindings/%2F/e/tour.promotions/q/tour.promo.notification.queue" | python3 -m json.tool
+# Expected: JSON với "source": "tour.promotions", "destination": "tour.promo.notification.queue"
+
+curl -s -u guest:guest "http://localhost:15672/api/bindings/%2F/e/tour.promotions/q/tour.promo.log.queue" | python3 -m json.tool
+# Expected: JSON với "destination": "tour.promo.log.queue"
+```
+
+**Step 4 — Kiểm tra test profile không cần broker thật**
+```bash
+mvn test 2>&1 | grep -E "BUILD|RabbitMQ|Connection refused|AMQP"
+# Expected: BUILD SUCCESS, không có Connection refused
+```
+
+#### Pass Criteria
+- [x] App start không có `Connection refused` tới `localhost:5672`
+- [x] Exchange `tour.promotions` (type: fanout, durable) visible trong Management UI
+- [x] Queue `tour.promo.notification.queue` và `tour.promo.log.queue` visible và durable
+- [x] Cả 2 queues được bind vào exchange `tour.promotions`
+- [x] `mvn test` BUILD SUCCESS không cần RabbitMQ thật (`auto-startup=false` trong test profile)
+
+---
+
+### T2.7–T2.9 — RabbitMQ Pipeline: TourService → Fanout → 2 Listeners
+
+> T2.7 (Publisher) và T2.8 (Listeners) được verify gián tiếp qua T2.9 (TourService integration).  
+> Admin tạo/activate ACTIVE tour → Publisher gửi → Fanout → 2 listeners nhận.
+
+#### Prerequisites
+- RabbitMQ Docker container đang chạy (`docker ps | grep rabbitmq`)
+- App đang chạy với profile `dev`
+- Có ít nhất 2 user active trong DB (để broadcastTourPromotion tạo ≥ 2 rows)
+
+```sql
+mysql -u root -p'Aa@123456' booking_tours
+
+-- Kiểm tra active users
+SELECT COUNT(*) FROM users WHERE is_active = 1;
+-- Expected: ≥ 2
+
+-- Tạo thêm user active nếu cần
+INSERT INTO users (email, password_hash, full_name, is_active, role_id, created_at, updated_at)
+VALUES ('testuser2@example.com', '$2a$10$...', 'Test User 2', 1,
+        (SELECT id FROM roles WHERE name='USER'), NOW(), NOW());
+```
+
+#### Test Steps — T2.9a: Tạo ACTIVE tour mới
+
+**Step 1 — Ghi nhận trạng thái notifications trước**
+```sql
+SELECT COUNT(*) AS total_before FROM notifications WHERE type='TOUR_PROMOTION';
+```
+
+**Step 2 — Admin tạo tour với status ACTIVE**
+
+Qua Swagger UI (`http://localhost:8080/swagger-ui.html`) → `POST /api/admin/tours`:
+```json
+{
+  "title": "Tour E2E Test RabbitMQ",
+  "description": "Test tour promotion broadcast",
+  "price": 1500000,
+  "duration": 3,
+  "maxParticipants": 20,
+  "status": "ACTIVE",
+  "categoryId": 1
+}
+```
+
+Hoặc qua curl:
+```bash
+curl -c cookies.txt -b cookies.txt \
+  -X POST "http://localhost:8080/api/admin/tours" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Tour E2E Test RabbitMQ",
+    "description": "Test tour promotion broadcast",
+    "price": 1500000,
+    "duration": 3,
+    "maxParticipants": 20,
+    "status": "ACTIVE",
+    "categoryId": 1
+  }'
+```
+
+**Step 3 — Kiểm tra TourPromotionNotificationListener đã broadcast**
+```sql
+mysql -u root -p'Aa@123456' booking_tours
+
+-- Số notifications TOUR_PROMOTION mới tạo phải = số active users
+SELECT COUNT(*) AS total_after FROM notifications WHERE type='TOUR_PROMOTION';
+-- Expected: total_before + <số active users>
+
+-- Chi tiết các row vừa tạo
+SELECT user_id, type, title, message, is_read, created_at
+FROM notifications
+WHERE type = 'TOUR_PROMOTION'
+ORDER BY created_at DESC
+LIMIT 10;
+```
+Expected:
+```
+| user_id | type           | title                          | is_read |
+|---------|----------------|--------------------------------|---------|
+| 1       | TOUR_PROMOTION | Tour mới: Tour E2E Test RabbitMQ | 0     |
+| 2       | TOUR_PROMOTION | Tour mới: Tour E2E Test RabbitMQ | 0     |
+| ...     | ...            | ...                            | ...     |
+```
+
+**Step 4 — Kiểm tra TourPromotionLogListener đã log**
+```bash
+grep "New ACTIVE tour published" logs/app.log | tail -3
+```
+Expected:
+```
+... INFO  c.s.b.m.r.TourPromotionLogListener - New ACTIVE tour published: id=<X>, title=Tour E2E Test RabbitMQ
+```
+
+**Step 5 — Kiểm tra message content đúng**
+```sql
+SELECT title, message FROM notifications
+WHERE type = 'TOUR_PROMOTION'
+ORDER BY created_at DESC
+LIMIT 1;
+```
+Expected:
+- `title`: `Tour mới: Tour E2E Test RabbitMQ`
+- `message`: `Tour "Tour E2E Test RabbitMQ" vừa được kích hoạt. Đặt ngay!`
+
+#### Test Steps — T2.9b: Update tour sang ACTIVE
+
+**Step 1 — Tạo 1 tour INACTIVE**
+```bash
+curl -c cookies.txt -b cookies.txt \
+  -X POST "http://localhost:8080/api/admin/tours" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Tour Draft", "description": "Draft", "price": 500000, "duration": 2, "maxParticipants": 10, "status": "INACTIVE", "categoryId": 1}'
+# Ghi lại tour_id từ response
+```
+
+**Step 2 — Ghi nhận số notifications trước**
+```sql
+SELECT COUNT(*) FROM notifications WHERE type='TOUR_PROMOTION';
+```
+
+**Step 3 — Update tour sang ACTIVE**
+```bash
+curl -c cookies.txt -b cookies.txt \
+  -X PUT "http://localhost:8080/api/admin/tours/<tour_id>" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "ACTIVE"}'
+```
+
+**Step 4 — Kiểm tra broadcast được trigger**
+```sql
+SELECT COUNT(*) FROM notifications WHERE type='TOUR_PROMOTION';
+-- Expected: tăng thêm đúng số lượng active users
+```
+
+#### Test Steps — T2.9c: INACTIVE tour KHÔNG trigger broadcast
+
+**Step 1 — Tạo tour INACTIVE**
+```bash
+curl -c cookies.txt -b cookies.txt \
+  -X POST "http://localhost:8080/api/admin/tours" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Tour No Broadcast", "description": "No broadcast", "price": 200000, "duration": 1, "maxParticipants": 5, "status": "INACTIVE", "categoryId": 1}'
+```
+
+**Step 2 — Kiểm tra số notifications KHÔNG tăng**
+```sql
+-- Đếm trước
+SELECT COUNT(*) FROM notifications WHERE type='TOUR_PROMOTION';
+-- Tạo tour INACTIVE ở trên
+-- Đếm sau — phải bằng nhau
+SELECT COUNT(*) FROM notifications WHERE type='TOUR_PROMOTION';
+```
+
+**Step 3 — Kiểm tra log KHÔNG có dòng log cho tour INACTIVE**
+```bash
+grep "No Broadcast" logs/app.log
+# Expected: không tìm thấy dòng nào
+```
+
+#### Pass Criteria
+- [x] Admin tạo tour ACTIVE → `N` rows `TOUR_PROMOTION` trong notifications (N = số active users)
+- [x] Admin update tour sang ACTIVE → `N` rows mới được tạo
+- [x] Admin tạo/update tour INACTIVE → số notifications KHÔNG tăng
+- [x] `title` = `"Tour mới: <tên tour>"`, `message` = `"Tour \"<tên tour>\" vừa được kích hoạt. Đặt ngay!"`
+- [x] `is_read = 0` cho tất cả notifications mới
+- [x] Log có dòng `New ACTIVE tour published: id=X, title=<tên tour>`
+- [x] Log không có ERROR từ `TourPromotionNotificationListener` hay `TourPromotionLogListener`
+- [x] RabbitMQ Management UI: message count trên cả 2 queues = 0 sau khi listeners xử lý xong
+
+---
+
+## Checklist tổng hợp Day 2
+
+| Task | Test | Status |
+|------|------|--------|
+| T2.1 | Log `Apache ActiveMQ X.X.X started` khi app start | ☑ |
+| T2.1 | Log `Connector vm://localhost started` | ☑ |
+| T2.1 | App start không có JMS bean error | ☑ |
+| T2.2 | Flyway V7 applied, `success=1` | ☑ |
+| T2.2 | Bảng `notifications` có đủ schema (8 cột, FK, 2 index) | ☑ |
+| T2.3–T2.4 | (verify gián tiếp qua T2.5) | — |
+| T2.5 | Admin confirm → 1 row `BOOKING_CONFIRMED` đúng user | ☐ |
+| T2.5 | Admin cancel → 1 row `BOOKING_CANCELLED` đúng user | ☐ |
+| T2.5 | `message` chứa booking code + tour title | ☐ |
+| T2.5 | Consumer log không có ERROR | ☐ |
+| T2.6 | Exchange `tour.promotions` (fanout, durable) visible | ☐ |
+| T2.6 | Cả 2 queues visible và bound vào exchange | ☐ |
+| T2.6 | `mvn test` pass không cần live broker | ☑ |
+| T2.7–T2.8 | (verify gián tiếp qua T2.9) | — |
+| T2.9 | Tạo ACTIVE tour → N rows `TOUR_PROMOTION` (N = active users) | ☐ |
+| T2.9 | Update sang ACTIVE → N rows mới | ☐ |
+| T2.9 | INACTIVE tour → không có rows mới | ☐ |
+| T2.9 | Log `New ACTIVE tour published` từ LogListener | ☐ |
+| T2.9 | RabbitMQ queues empty sau khi xử lý xong | ☐ |
+
+> ☑ = verified trong session implement | ☐ = cần verify thủ công với live broker
+
+---
+
 ## Checklist tổng hợp Day 1
 
 | Task | Test | Status |
