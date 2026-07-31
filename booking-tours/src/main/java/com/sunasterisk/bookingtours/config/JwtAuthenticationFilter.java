@@ -11,8 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -25,7 +27,10 @@ import java.util.List;
  * 3. Load user từ DB theo subject — kiểm tra tài khoản còn active và lấy role
  *    HIỆN TẠI (không tin role claim trong token). Nhờ đó lock/unlock và đổi role
  *    có hiệu lực ngay lập tức thay vì phải chờ token hết hạn.
- * 4. Set Authentication vào SecurityContext
+ * 4. Set Authentication vào SecurityContext và persist vào repository
+ *    (RequestAttributeSecurityContextRepository) để SessionManagementFilter
+ *    nhận biết context đã có — tránh CsrfAuthenticationStrategy rotate token
+ *    trên mỗi request JWT-authenticated.
  * <p>
  * KHÔNG đăng ký là @Component để tránh bị Spring Boot
  * tự động thêm vào Servlet filter chain (sẽ bị chạy 2 lần).
@@ -43,6 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
+    private final SecurityContextRepository securityContextRepository;
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
@@ -82,7 +88,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request));
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContext context = SecurityContextHolder.getContext();
+                context.setAuthentication(authentication);
+                // Persist context vào RequestAttributeSecurityContextRepository —
+                // SessionManagementFilter.containsContext() sẽ trả về true
+                // → CsrfAuthenticationStrategy không rotate CSRF token.
+                securityContextRepository.saveContext(context, request, response);
             }
         }
 

@@ -5,12 +5,14 @@ import com.sunasterisk.bookingtours.entity.Category;
 import com.sunasterisk.bookingtours.entity.Tour;
 import com.sunasterisk.bookingtours.entity.TourStatus;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
+import com.sunasterisk.bookingtours.messaging.rabbitmq.TourPromotionMessage;
 import com.sunasterisk.bookingtours.repository.CategoryRepository;
 import com.sunasterisk.bookingtours.repository.TourRepository;
 import com.sunasterisk.bookingtours.service.TourService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ public class TourServiceImpl implements TourService {
 
     private final TourRepository tourRepository;
     private final CategoryRepository categoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * {@inheritDoc}
@@ -102,7 +105,9 @@ public class TourServiceImpl implements TourService {
                         ? tourRequest.getStatus() : TourStatus.ACTIVE)
                 .build();
 
-        return tourRepository.save(tour);
+        Tour saved = tourRepository.save(tour);
+        publishIfActive(saved.getId(), saved.getTitle(), saved.getStatus());
+        return saved;
     }
 
     /**
@@ -138,11 +143,28 @@ public class TourServiceImpl implements TourService {
         tour.setCategory(category);
 
         // Cập nhật status — giữ nguyên status cũ nếu request null
+        TourStatus previousStatus = tour.getStatus();
         if (tourRequest.getStatus() != null) {
             tour.setStatus(tourRequest.getStatus());
         }
 
-        return tourRepository.save(tour);
+        Tour saved = tourRepository.save(tour);
+        // Chỉ publish khi có transition sang ACTIVE, tránh spam khi update tour đã ACTIVE
+        if (previousStatus != TourStatus.ACTIVE && saved.getStatus() == TourStatus.ACTIVE) {
+            publishIfActive(saved.getId(), saved.getTitle(), saved.getStatus());
+        }
+        return saved;
+    }
+
+    private void publishIfActive(Long tourId, String tourTitle, TourStatus status) {
+        if (status == TourStatus.ACTIVE) {
+            eventPublisher.publishEvent(
+                    TourPromotionMessage.builder()
+                            .tourId(tourId)
+                            .tourTitle(tourTitle)
+                            .build()
+            );
+        }
     }
 
     /**

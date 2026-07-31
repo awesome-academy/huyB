@@ -2,7 +2,9 @@ package com.sunasterisk.bookingtours.service.impl;
 
 import com.sunasterisk.bookingtours.dto.BookingRequest;
 import com.sunasterisk.bookingtours.entity.*;
+import com.sunasterisk.bookingtours.entity.Notification.NotificationType;
 import com.sunasterisk.bookingtours.exception.ResourceNotFoundException;
+import com.sunasterisk.bookingtours.messaging.activemq.BookingNotificationMessage;
 import com.sunasterisk.bookingtours.repository.BookingRepository;
 import com.sunasterisk.bookingtours.repository.PaymentRepository;
 import com.sunasterisk.bookingtours.repository.TourRepository;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ public class BookingServiceImpl implements BookingService {
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * {@inheritDoc}
@@ -190,7 +194,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public void adminConfirmBooking(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithTourAndUser(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
 
         if (booking.getStatus() != BookingStatus.PENDING) {
@@ -205,6 +209,9 @@ public class BookingServiceImpl implements BookingService {
             payment.setStatus(PaymentStatus.CONFIRMED);
             paymentRepository.save(payment);
         });
+
+        sendBookingNotification(booking, NotificationType.BOOKING_CONFIRMED,
+                "Đặt tour đã được xác nhận");
     }
 
     /**
@@ -213,7 +220,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public void adminCancelBooking(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithTourAndUser(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
 
         if (booking.getStatus() == BookingStatus.CANCELLED
@@ -229,6 +236,22 @@ public class BookingServiceImpl implements BookingService {
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
         });
+
+        sendBookingNotification(booking, NotificationType.BOOKING_CANCELLED,
+                "Đặt tour đã bị hủy");
+    }
+
+    private void sendBookingNotification(Booking booking, NotificationType type, String title) {
+        String message = "Booking " + booking.getBookingCode()
+                + " cho tour \"" + booking.getTour().getTitle() + "\".";
+        eventPublisher.publishEvent(
+                BookingNotificationMessage.builder()
+                        .userId(booking.getUser().getId())
+                        .type(type)
+                        .title(title)
+                        .message(message)
+                        .build()
+        );
     }
 
     /**

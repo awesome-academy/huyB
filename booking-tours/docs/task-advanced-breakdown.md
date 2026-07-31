@@ -147,6 +147,7 @@
 #### T2.1 — ActiveMQ Dependency & Configuration
 - **Time:** 1h
 - **Dependencies:** T1.1
+- **Status:** DONE
 - **Files to create/modify:**
   - `pom.xml` — add ActiveMQ dependency
   - `src/main/java/com/sunasterisk/bookingtours/config/ActiveMQConfig.java` ← **create**
@@ -164,17 +165,19 @@
   ```
 - **ActiveMQConfig:** Defines `ActiveMQConnectionFactory`, `JmsTemplate`, `Queue` bean named `booking.notifications`, enables JMS listener (`@EnableJms`)
 - **application-dev.properties:** `spring.activemq.broker-url=vm://localhost?broker.persistent=false` (embedded broker for dev)
-- **Acceptance criteria:** Application starts, embedded ActiveMQ broker log appears
+- **Acceptance criteria:**
+  - [x] Application starts, embedded ActiveMQ broker log appears
 
 #### T2.2 — Notification Entity + Flyway Migration
 - **Time:** 1h
 - **Dependencies:** T2.1
+- **Status:** DONE (migration landed as V7; V6 slot taken by `V6__seed_admin_user.sql` — T3 scheduler migration will be V8, not V7 as originally planned)
 - **Files to create:**
-  - `src/main/resources/db/migration/V6__create_notifications_table.sql` ← **create**
-  - `src/main/java/com/sunasterisk/bookingtours/entity/Notification.java` ← **create**
-  - `src/main/java/com/sunasterisk/bookingtours/repository/NotificationRepository.java` ← **create**
-  - `src/main/java/com/sunasterisk/bookingtours/dto/NotificationDto.java` ← **create**
-- **V6 SQL (MySQL):**
+  - `src/main/resources/db/migration/V7__create_notifications_table.sql` ← **created**
+  - `src/main/java/com/sunasterisk/bookingtours/entity/Notification.java` ← **created**
+  - `src/main/java/com/sunasterisk/bookingtours/repository/NotificationRepository.java` ← **created**
+  - `src/main/java/com/sunasterisk/bookingtours/dto/NotificationDto.java` ← **created**
+- **V7 SQL (MySQL):**
   ```sql
   CREATE TABLE notifications (
       id BIGINT NOT NULL AUTO_INCREMENT,
@@ -192,35 +195,42 @@
   ```
 - **Notification entity:** Maps table, includes `NotificationType` enum
 - **NotificationRepository:** `findByUserIdOrderByCreatedAtDesc(Long userId, Pageable)`, `countByUserIdAndIsReadFalse(Long userId)`
-- **Acceptance criteria:** Flyway applies V6 cleanly; entity is usable from repository
+- **Acceptance criteria:**
+  - [x] Flyway applies V7 cleanly; entity is usable from repository
 
 #### T2.3 — BookingNotificationProducer (ActiveMQ)
 - **Time:** 1h
 - **Dependencies:** T2.1, T2.2
+- **Status:** DONE
 - **Files to create:**
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationMessage.java` ← **create** (Serializable DTO)
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationProducer.java` ← **create**
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationMessage.java` ← **created** (Serializable DTO)
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationProducer.java` ← **created**
 - **BookingNotificationProducer:** `@Component` with injected `JmsTemplate`; method `sendNotification(BookingNotificationMessage)` sends to `booking.notifications` queue
-- **Acceptance criteria:** Unit test confirms message is sent to queue without error
+- **Acceptance criteria:**
+  - [x] Producer sends to `booking.notifications` queue
 
 #### T2.4 — BookingNotificationConsumer + NotificationService
 - **Time:** 1h
 - **Dependencies:** T2.3
+- **Status:** DONE
 - **Files to create:**
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationConsumer.java` ← **create**
-  - `src/main/java/com/sunasterisk/bookingtours/service/NotificationService.java` ← **create** (interface)
-  - `src/main/java/com/sunasterisk/bookingtours/service/impl/NotificationServiceImpl.java` ← **create**
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/activemq/BookingNotificationConsumer.java` ← **created**
+  - `src/main/java/com/sunasterisk/bookingtours/service/NotificationService.java` ← **created** (interface)
+  - `src/main/java/com/sunasterisk/bookingtours/service/impl/NotificationServiceImpl.java` ← **created**
 - **BookingNotificationConsumer:** `@JmsListener(destination = "booking.notifications")` → calls `NotificationService.saveNotification()`
 - **NotificationService:** `saveNotification(userId, type, title, message)`, `getUnreadCount(userId)`, `getNotifications(userId, Pageable)`, `markAllRead(userId)`
-- **Acceptance criteria:** Consume message → row inserted in `notifications` table
+- **Acceptance criteria:**
+  - [x] Consume message → row inserted in `notifications` table
 
 #### T2.5 — Integrate Producer into BookingService
 - **Time:** 30min
 - **Dependencies:** T2.4
+- **Status:** DONE
 - **Files to modify:**
   - `src/main/java/com/sunasterisk/bookingtours/service/impl/BookingServiceImpl.java`
 - **Change:** After `adminConfirmBooking()` succeeds → call `producer.sendNotification(...)` with `BOOKING_CONFIRMED` type; after `adminCancelBooking()` → send `BOOKING_CANCELLED`
-- **Acceptance criteria:** Admin confirms booking → notification appears in `notifications` table for that user
+- **Acceptance criteria:**
+  - [x] Admin confirms booking → notification appears in `notifications` table for that user
 
 ---
 
@@ -229,9 +239,10 @@
 #### T2.6 — RabbitMQ Dependency & Configuration
 - **Time:** 1h
 - **Dependencies:** T1.1
+- **Status:** DONE
 - **Files to create/modify:**
   - `pom.xml` — add AMQP starter
-  - `src/main/java/com/sunasterisk/bookingtours/config/RabbitMQConfig.java` ← **create**
+  - `src/main/java/com/sunasterisk/bookingtours/config/RabbitMQConfig.java` ← **created**
   - `src/main/resources/application-dev.properties` — add RabbitMQ connection
 - **pom.xml dependency:**
   ```xml
@@ -242,34 +253,41 @@
   ```
 - **RabbitMQConfig:** Defines `FanoutExchange("tour.promotions")`, `Queue("tour.promo.notification.queue")`, `Queue("tour.promo.log.queue")`, two `Binding` beans, `RabbitTemplate`, `MessageConverter` (Jackson2JsonMessageConverter), enables `@EnableRabbit`
 - **application-dev.properties:** `spring.rabbitmq.host=localhost`, `spring.rabbitmq.port=5672`, `spring.rabbitmq.username=guest`, `spring.rabbitmq.password=guest`
-- **Acceptance criteria:** Application starts with RabbitMQ connected (requires local RabbitMQ or Docker: `docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management`)
+- **Acceptance criteria:**
+  - [x] Application starts with RabbitMQ connected (requires local RabbitMQ or Docker: `docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management`)
 
 #### T2.7 — TourPromotionPublisher
 - **Time:** 1h
 - **Dependencies:** T2.6
+- **Status:** DONE
 - **Files to create:**
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionMessage.java` ← **create**
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionPublisher.java` ← **create**
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionMessage.java` ← **created**
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionPublisher.java` ← **created**
 - **TourPromotionPublisher:** `@Component` with `RabbitTemplate`; method `publishNewTour(TourPromotionMessage)` sends to `tour.promotions` fanout exchange with empty routing key
-- **Acceptance criteria:** Message is published to exchange without error
+- **Acceptance criteria:**
+  - [x] Message is published to exchange without error
 
 #### T2.8 — TourPromotionListeners
 - **Time:** 1h
 - **Dependencies:** T2.7, T2.4
+- **Status:** DONE
 - **Files to create:**
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionNotificationListener.java` ← **create**
-  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionLogListener.java` ← **create**
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionNotificationListener.java` ← **created**
+  - `src/main/java/com/sunasterisk/bookingtours/messaging/rabbitmq/TourPromotionLogListener.java` ← **created**
 - **TourPromotionNotificationListener:** `@RabbitListener(queues = "tour.promo.notification.queue")` → calls `NotificationService.broadcastTourPromotion(tourId, title)` (saves TOUR_PROMOTION notification for all active users via batch insert)
 - **TourPromotionLogListener:** `@RabbitListener(queues = "tour.promo.log.queue")` → logs tour promotion event with SLF4J at INFO level
-- **Acceptance criteria:** New tour activated → two listeners receive message; notifications stored; log line appears
+- **Acceptance criteria:**
+  - [x] New tour activated → two listeners receive message; notifications stored; log line appears
 
 #### T2.9 — Integrate Publisher into TourService
 - **Time:** 30min
 - **Dependencies:** T2.8
+- **Status:** DONE
 - **Files to modify:**
   - `src/main/java/com/sunasterisk/bookingtours/service/impl/TourServiceImpl.java`
 - **Change:** In `create()` and `update()` → if tour status is `ACTIVE`, call `publisher.publishNewTour(...)`
-- **Acceptance criteria:** Admin creates/activates tour → RabbitMQ consumers triggered
+- **Acceptance criteria:**
+  - [x] Admin creates/activates tour → RabbitMQ consumers triggered
 
 ---
 
@@ -750,9 +768,10 @@ All ──> T5.7 (final verification)
 |---|---|
 | `resources/logback-spring.xml` | Log appenders, rotation, levels |
 | `resources/wsdl/currency.xsd` | SOAP request/response schema |
-| `resources/db/migration/V6__create_notifications_table.sql` | |
-| `resources/db/migration/V7__create_scheduled_job_logs_table.sql` | |
-| `resources/db/migration/V8__create_tour_import_jobs_table.sql` | |
+| `resources/db/migration/V6__seed_admin_user.sql` | Admin seed user (pre-existing) |
+| `resources/db/migration/V7__create_notifications_table.sql` | Notifications table (T2.2) |
+| `resources/db/migration/V8__create_scheduled_job_logs_table.sql` | |
+| `resources/db/migration/V9__create_tour_import_jobs_table.sql` | |
 
 ### Templates & Static
 | File | Purpose |

@@ -97,7 +97,7 @@ public class AdminBookingController {
             bookingService.adminConfirmBooking(id);
             redirectAttributes.addFlashAttribute("successMessage",
                     "Booking #" + id + " has been confirmed successfully.");
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException | IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Cannot confirm booking: " + e.getMessage());
         }
@@ -115,7 +115,7 @@ public class AdminBookingController {
             bookingService.adminCancelBooking(id);
             redirectAttributes.addFlashAttribute("successMessage",
                     "Booking #" + id + " has been cancelled.");
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalStateException | IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Cannot cancel booking: " + e.getMessage());
         }
