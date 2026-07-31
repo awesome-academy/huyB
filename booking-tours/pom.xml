@@ -114,6 +114,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ===== WebSocket ===== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- ===== ActiveMQ Classic (embedded broker, dev) ===== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
