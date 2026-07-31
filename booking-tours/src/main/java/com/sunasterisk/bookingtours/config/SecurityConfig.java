@@ -20,9 +20,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.context.NullSecurityContextRepository;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -42,8 +43,17 @@ public class SecurityConfig {
      * tự đăng ký vào Servlet filter chain (sẽ chạy 2 lần).
      */
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtils, userRepository);
+    public SecurityContextRepository securityContextRepository() {
+        // RequestAttributeSecurityContextRepository: context sống trong phạm vi request,
+        // không persist vào session. SessionManagementFilter.containsContext() trả về true
+        // sau khi JwtAuthenticationFilter gọi saveContext() → ngăn CsrfAuthenticationStrategy
+        // rotate CSRF token trên mỗi JWT-authenticated request.
+        return new RequestAttributeSecurityContextRepository();
+    }
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(SecurityContextRepository securityContextRepository) {
+        return new JwtAuthenticationFilter(jwtUtils, userRepository, securityContextRepository);
     }
 
     @Bean
@@ -59,14 +69,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                    SecurityContextRepository securityContextRepository) throws Exception {
         http
                 // Bật CSRF với CookieCsrfTokenRepository (token lưu trong XSRF-TOKEN cookie).
-                // Thymeleaf th:action tự inject hidden _csrf field → form submit hợp lệ.
-                // Kết hợp HttpOnly + SameSite=Lax + CSRF token = defense-in-depth 3 lớp.
+                // XorCsrfTokenRequestAttributeHandler (default từ Spring Security 6+):
+                //   - XOR-encode token cho mỗi form request → BREACH protection
+                //   - Đọc cookie trực tiếp khi validate, không phụ thuộc deferred subscription
+                //   - Thymeleaf th:action tự inject _csrf hidden field với giá trị XOR-encoded
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler())
                 )
 
                 // Tắt HTTP Basic Authentication mặc định
@@ -79,17 +92,14 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
-                // KHÔNG lưu SecurityContext (Authentication) vào HTTP session.
-                // Nếu để mặc định (HttpSessionSecurityContextRepository), sau khi login
-                // qua Google, Authentication bị lưu vào session và được SecurityContextHolderFilter
-                // khôi phục ở mỗi request TRƯỚC JwtAuthenticationFilter → filter bỏ qua việc
-                // kiểm tra lại isActive/role trong DB (guard "getAuthentication() == null" là false)
-                // → user OAuth bị khoá vẫn truy cập được đến khi session hết hạn.
-                // NullSecurityContextRepository buộc MỌI request phải xác thực lại qua JWT cookie,
-                // đúng như thiết kế "JWT là nguồn sự thật sau đăng nhập".
+                // RequestAttributeSecurityContextRepository: context sống trong phạm vi request,
+                // không persist sang session (không khôi phục Authentication từ session ở request sau).
+                // JwtAuthenticationFilter gọi saveContext() → SessionManagementFilter thấy
+                // containsContext()=true → CsrfAuthenticationStrategy KHÔNG rotate CSRF token.
+                // Điều này ngăn form bị stale CSRF sau mỗi request GET authenticated.
                 // OAuth2 state param dùng repository riêng (HttpSessionOAuth2AuthorizationRequestRepository),
-                // không bị ảnh hưởng bởi thay đổi này.
-                .securityContext(sc -> sc.securityContextRepository(new NullSecurityContextRepository()))
+                // không bị ảnh hưởng.
+                .securityContext(sc -> sc.securityContextRepository(securityContextRepository))
 
                 // Phân quyền theo URL
                 .authorizeHttpRequests(auth -> auth
@@ -128,7 +138,7 @@ public class SecurityConfig {
                 )
 
                 // JWT filter chạy trước UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter(),
+                .addFilterBefore(jwtAuthenticationFilter(securityContextRepository),
                         UsernamePasswordAuthenticationFilter.class)
 
                 // Logout: chỉ chấp nhận POST (CSRF token bắt buộc) → xóa JWT cookie → redirect
