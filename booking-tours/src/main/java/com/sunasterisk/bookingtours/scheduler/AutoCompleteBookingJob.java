@@ -30,6 +30,7 @@ public class AutoCompleteBookingJob {
     private final BookingRepository bookingRepository;
     private final ScheduledJobLogRepository jobLogRepository;
 
+    // Chạy mỗi ngày lúc 00:30 — chọn giờ này để tránh giờ cao điểm và sau midnight
     @Scheduled(cron = "0 30 0 * * *")
     @Transactional
     public void run() {
@@ -37,17 +38,21 @@ public class AutoCompleteBookingJob {
         log.info("[{}] Starting — checking CONFIRMED bookings past departure date", JOB_NAME);
 
         try {
+            // Lấy tất cả booking CONFIRMED có departureDate < hôm nay
+            // → user đã đi tour xong nhưng admin chưa chuyển thủ công
             List<Booking> bookings = bookingRepository.findConfirmedBookingsPastDeparture(
                     BookingStatus.CONFIRMED, LocalDate.now());
 
             for (Booking booking : bookings) {
                 booking.setStatus(BookingStatus.COMPLETED);
             }
+            // saveAll trong một transaction → toàn bộ batch commit hoặc rollback cùng nhau
             bookingRepository.saveAll(bookings);
 
             long duration = System.currentTimeMillis() - start;
             log.info("[{}] Completed {} bookings in {}ms", JOB_NAME, bookings.size(), duration);
 
+            // Ghi log kết quả vào DB để admin theo dõi lịch sử chạy job
             jobLogRepository.save(ScheduledJobLog.builder()
                     .jobName(JOB_NAME)
                     .status(JobStatus.SUCCESS)
@@ -59,6 +64,7 @@ public class AutoCompleteBookingJob {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - start;
             log.error("[{}] Failed after {}ms: {}", JOB_NAME, duration, e.getMessage(), e);
+            // Ghi log lỗi vào DB ngay cả khi job fail để dễ debug sau
             jobLogRepository.save(ScheduledJobLog.builder()
                     .jobName(JOB_NAME)
                     .status(JobStatus.FAILED)
