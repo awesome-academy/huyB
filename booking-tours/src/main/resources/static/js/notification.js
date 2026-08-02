@@ -2,6 +2,10 @@
  * notification.js — WebSocket/STOMP client cho real-time notifications.
  * Kết nối qua SockJS + StompJS, subscribe /user/queue/notifications.
  * Khi nhận message: tăng badge, hiện toast Bootstrap 5.
+ *
+ * CSRF: Spring Security 7 dùng XorCsrfChannelInterceptor cho STOMP CONNECT.
+ * Token phải là giá trị XOR-masked từ <meta name="_csrf">, KHÔNG phải raw cookie.
+ * Raw cookie (XSRF-TOKEN) là UUID — không pass được XOR Base64 decode validation.
  */
 
 (function () {
@@ -11,6 +15,17 @@
     const TOAST_CONTAINER = document.getElementById('toast-container');
 
     let badgeCount = 0;
+
+    // Đọc XOR-masked CSRF token từ meta tag (set bởi Thymeleaf từ _csrf request attribute).
+    // KHÔNG dùng getCookie('XSRF-TOKEN') vì Spring Security 7 XorCsrfChannelInterceptor
+    // yêu cầu token phải là Base64(randomBytes || XOR(random, rawToken)).
+    function getCsrfToken() {
+        return document.querySelector('meta[name="_csrf"]')?.getAttribute('content') || '';
+    }
+
+    function getCsrfHeaderName() {
+        return document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content') || 'X-XSRF-TOKEN';
+    }
 
     function updateBadge(count) {
         badgeCount = Math.max(0, count);
@@ -61,9 +76,10 @@
     }
 
     function connectWebSocket() {
-        // Đọc CSRF token từ cookie XSRF-TOKEN (CookieCsrfTokenRepository.withHttpOnlyFalse)
-        const csrfToken = getCookie('XSRF-TOKEN');
-        const headers = csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {};
+        // Gửi XOR-masked CSRF token (từ meta tag) trong STOMP CONNECT header.
+        // XorCsrfChannelInterceptor decode Base64 → XOR → so sánh với raw token trong session.
+        const csrfToken = getCsrfToken();
+        const headers = csrfToken ? { [getCsrfHeaderName()]: csrfToken } : {};
 
         const socket = new SockJS('/ws');
         const stompClient = Stomp.over(socket);
@@ -81,29 +97,12 @@
         });
     }
 
-    function getCookie(name) {
-        const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-        return match ? decodeURIComponent(match[1]) : null;
-    }
-
     // Khởi tạo sau khi DOM sẵn sàng
     document.addEventListener('DOMContentLoaded', function () {
         fetchUnreadCount();
 
-        const bellBtn = document.getElementById('notif-bell');
-        if (bellBtn) {
-            // Prevent immediate navigation — POST mark-read first, then navigate.
-            // Without preventDefault the fetch is aborted when the page unloads.
-            bellBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                const href = bellBtn.getAttribute('href') || '/profile/notifications';
-                fetch('/api/notifications/mark-read', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'X-XSRF-TOKEN': getCookie('XSRF-TOKEN') || '' }
-                }).finally(() => { window.location.href = href; });
-            });
-        }
+        // Bell chỉ navigate đến trang notifications — không auto mark-read.
+        // User phải nhấn "Mark all read" trên trang để đánh dấu đã đọc.
 
         // Chỉ kết nối WebSocket khi user đã đăng nhập (badge element tồn tại)
         if (BADGE_EL !== null) {

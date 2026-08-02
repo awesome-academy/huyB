@@ -73,13 +73,18 @@ public class SecurityConfig {
                                                     SecurityContextRepository securityContextRepository) throws Exception {
         http
                 // Bật CSRF với CookieCsrfTokenRepository (token lưu trong XSRF-TOKEN cookie).
-                // XorCsrfTokenRequestAttributeHandler (default từ Spring Security 6+):
+                // XorCsrfTokenRequestAttributeHandler (Spring Security 6+):
                 //   - XOR-encode token cho mỗi form request → BREACH protection
-                //   - Đọc cookie trực tiếp khi validate, không phụ thuộc deferred subscription
-                //   - Thymeleaf th:action tự inject _csrf hidden field với giá trị XOR-encoded
+                //   - Thymeleaf th:action inject _csrf hidden field với giá trị XOR-encoded
+                //   - JS PHẢI đọc từ <meta name="_csrf"> (XOR-masked), KHÔNG dùng raw cookie
+                // ignoringRequestMatchers("/ws/**"):
+                //   - SockJS XHR transport dùng HTTP POST không mang CSRF header
+                //   - CSRF protection tại tầng STOMP được đảm bảo bởi XorCsrfChannelInterceptor
+                //   - Loại khỏi HTTP CSRF để transport hoạt động, STOMP-level CSRF vẫn còn
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers("/ws/**")
                 )
 
                 // Tắt HTTP Basic Authentication mặc định
