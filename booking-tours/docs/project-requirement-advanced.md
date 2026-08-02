@@ -146,7 +146,7 @@ Chuyển toàn bộ schema từ PostgreSQL sang MySQL 8.0+ trong khi đảm bả
 
 ```properties
 # application-dev.properties
-spring.datasource.url=jdbc:mysql://localhost:3306/booking_tours?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+spring.datasource.url=jdbc:mysql://localhost:3306/booking_tours?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 spring.datasource.username=root
 spring.datasource.password=root
@@ -158,19 +158,22 @@ spring.datasource.hikari.connection-timeout=30000
 spring.datasource.hikari.idle-timeout=600000
 
 # Flyway
-spring.flyway.locations=classpath:db/migration/mysql
+spring.flyway.locations=classpath:db/migration
 spring.flyway.baseline-on-migrate=true
 ```
 
 ### 4.4 Flyway Migration Files (MySQL)
 ```
-resources/db/migration/mysql/
-├── V1__init_schema.sql        (MySQL-compatible schema)
-├── V2__seed_data.sql          (roles, users)
-├── V3__seed_tours.sql         (tours, categories)
-├── V4__seed_reviews.sql       (reviews, comments)
+resources/db/migration/
+├── V1__init_schema.sql                        (MySQL-compatible schema)
+├── V2__seed_data.sql                          (roles, users)
+├── V3__seed_tours.sql                         (tours, categories)
+├── V4__seed_reviews.sql                       (reviews, comments)
 ├── V5__unique_payment_per_booking.sql
-└── V6__add_notifications.sql  (new table for v2)
+├── V6__seed_admin_user.sql                    (admin user seed)
+├── V7__create_notifications_table.sql         (notifications — v2)
+├── V8__create_scheduled_job_logs_table.sql    (scheduler job logs — v2)
+└── V9__create_tour_import_jobs_table.sql      (excel import jobs — v2)
 ```
 
 ### 4.5 Acceptance Criteria
@@ -224,10 +227,8 @@ public class BookingNotificationMessage implements Serializable {
 ```
 
 #### Configuration
-- Broker URL: `tcp://localhost:61616`
+- Broker URL: `vm://localhost?broker.persistent=false` (embedded broker, dev)
 - Queue name: `booking.notifications`
-- Acknowledgement mode: `CLIENT_ACKNOWLEDGE` (manual ack on successful DB save)
-- Dead letter queue: `booking.notifications.DLQ` (after 3 failed retries)
 
 #### User Story
 > Với tư cách là **user**, tôi muốn nhận thông báo khi đơn đặt tour của tôi được admin xác nhận hoặc hủy, để tôi biết trạng thái mà không cần refresh trang.
@@ -255,11 +256,11 @@ TourPromotionPublisher.publish(TourPromotionEvent)
     ▼
 RabbitMQ Broker (localhost:5672)
     │
-    ├──► Queue: tour.promotions.log
-    │        └── NotificationLogListener → logs to promotion_logs table
+    ├──► Queue: tour.promo.log.queue
+    │        └── TourPromotionLogListener → logs event với SLF4J (INFO level)
     │
-    └──► Queue: tour.promotions.alert
-             └── PromotionAlertListener → creates Notification for all active users
+    └──► Queue: tour.promo.notification.queue
+             └── TourPromotionNotificationListener → creates Notification for all active users
 ```
 
 #### Event Object
@@ -276,8 +277,8 @@ public class TourPromotionEvent implements Serializable {
 
 #### Configuration
 - Exchange: `tour.promotions` (FANOUT, durable)
-- Queue 1: `tour.promotions.log` (durable)
-- Queue 2: `tour.promotions.alert` (durable)
+- Queue 1: `tour.promo.log.queue` (durable)
+- Queue 2: `tour.promo.notification.queue` (durable)
 - Connection: `amqp://guest:guest@localhost:5672`
 
 #### User Story
@@ -285,8 +286,8 @@ public class TourPromotionEvent implements Serializable {
 
 #### Acceptance Criteria
 - [ ] Khi admin set tour status = ACTIVE → event được publish lên RabbitMQ
-- [ ] NotificationLogListener nhận event và ghi vào bảng `promotion_logs`
-- [ ] PromotionAlertListener tạo Notification cho tất cả user active
+- [ ] TourPromotionLogListener nhận event và log với SLF4J (INFO level)
+- [ ] TourPromotionNotificationListener tạo Notification cho tất cả user active
 - [ ] Hai consumer hoạt động độc lập, lỗi ở một consumer không ảnh hưởng consumer kia
 
 ---
@@ -317,19 +318,7 @@ Tích hợp WebSocket + STOMP để đẩy thông báo realtime đến user khi 
 }
 ```
 
-#### Feature 2: Admin Live Stats
-- Khi có booking mới → broadcast đến `/topic/admin/stats`
-- Admin dashboard tự cập nhật các số liệu mà không cần refresh
-- Payload:
-```json
-{
-  "todayBookingCount": 15,
-  "pendingCount": 3,
-  "monthlyRevenue": 45000000
-}
-```
-
-#### Feature 3: Notification Bell Icon (Navbar)
+#### Feature 2: Notification Bell Icon (Navbar)
 - Bell icon hiển thị badge số lượng notification chưa đọc
 - Subscribe WebSocket khi user đăng nhập → cập nhật badge realtime
 - Click vào bell → dropdown hiển thị 5 notification gần nhất
@@ -353,7 +342,6 @@ CREATE TABLE notifications (
 
 #### Acceptance Criteria
 - [ ] User nhận notification realtime khi booking được confirm/cancel
-- [ ] Admin dashboard cập nhật stats realtime khi có booking mới
 - [ ] Bell icon badge cập nhật số đúng chưa đọc
 - [ ] Notification vẫn hiển thị trong lịch sử nếu user offline lúc nhận
 
@@ -380,22 +368,21 @@ Các operations được đánh dấu `@Async` để không block HTTP thread:
 
 | Method | Reason |
 |---|---|
-| `NotificationService.sendAsync(notification)` | Gửi notification vào queue không block response |
-| `RatingService.updateTourAvgRatingAsync(tourId)` | Tính toán aggregate không cần block |
-| `ExcelService.generateReportAsync(filters)` | Export file nặng chạy nền |
+| `NotificationService.saveNotification(...)` | Gửi notification vào queue không block response |
+| `NotificationService.broadcastTourPromotion(...)` | Broadcast tới nhiều user không block response |
 
 #### Async Configuration
 ```java
 @Configuration
 @EnableAsync
 public class AsyncConfig {
-    @Bean("asyncExecutor")
-    public Executor asyncExecutor() {
+    @Bean("notificationExecutor")
+    public Executor notificationExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(3);
-        executor.setMaxPoolSize(8);
+        executor.setMaxPoolSize(5);
         executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("async-");
+        executor.setThreadNamePrefix("notif-async-");
         return executor;
     }
 }
@@ -481,7 +468,7 @@ public ThreadPoolTaskExecutor tourImportExecutor() {
 | Created Date | DateTime | dd/MM/yyyy HH:mm |
 
 #### Styling Requirements
-- Header row: Bold, background color `#2C3E50`, font color white
+- Header row: Bold, light blue background fill, border
 - Alternating row colors: white / `#F5F5F5`
 - Auto-size all columns
 - Sheet name: `Bookings_{fromDate}_{toDate}`
@@ -554,31 +541,23 @@ Xây dựng SOAP Web Service cung cấp chức năng quy đổi giá tour sang c
 </Response>
 ```
 
-**getSupportedCurrencies**
-```xml
-<Response>
-  <currencies>VND,USD,EUR,JPY,KRW</currencies>
-</Response>
-```
-
 #### Mock Exchange Rates (hardcoded)
 | Currency | Rate to VND |
 |---|---|
 | VND | 1.0 |
-| USD | 25,400 |
+| USD | 25,500 |
 | EUR | 27,800 |
 | JPY | 170 |
-| KRW | 19 |
+| KRW | 18.5 |
 
 #### Integration
-- Trang admin `/admin/tours/{id}` gọi SOAP client → hiển thị giá tour dưới dạng: `5,000,000 VND ≈ $196.85 USD ≈ €179.85 EUR`
+- Trang `/tours/{id}` (tour detail) gọi SOAP client → hiển thị giá tour dưới dạng: `5,000,000 VND ≈ $196.08 USD ≈ €179.86 EUR`
 - SOAP client tích hợp vào `CurrencyConversionClient` bean
 
 #### Acceptance Criteria
 - [ ] WSDL accessible tại `/ws/currency.wsdl`
 - [ ] `convertPrice` trả về kết quả đúng với mock rates
-- [ ] `getSupportedCurrencies` trả về danh sách 5 loại tiền
-- [ ] Admin tour detail hiển thị giá đã quy đổi
+- [ ] Tour detail page (`/tours/{id}`) hiển thị giá đã quy đổi (VND / USD / EUR)
 - [ ] SOAP client xử lý lỗi khi currency không hợp lệ
 
 ---
@@ -624,28 +603,18 @@ Tất cả chart APIs:
 ### 12.1 Unit Tests (Service Layer)
 
 **BookingServiceTest**
-- `createBooking_success` — booking được tạo với code đúng format
-- `createBooking_tourNotFound` — throw TourNotFoundException
-- `createBooking_tourInactive` — throw TourNotActiveException
-- `cancelBooking_success` — PENDING → CANCELLED
-- `cancelBooking_notPending` — throw InvalidBookingStatusException
-- `adminConfirmBooking_success` — PENDING → CONFIRMED
+- `createBooking_success` — booking được tạo với code đúng format, total price đúng
+- `createBooking_tourNotFound_throwsException` — throw ResourceNotFoundException
+- `cancelBooking_pendingBooking_success` — PENDING → CANCELLED
+- `cancelBooking_confirmedBooking_throwsException` — không thể cancel booking đã confirmed
+- `adminConfirmBooking_success` — PENDING → CONFIRMED, ActiveMQ producer được gọi
+- `generateBookingCode_uniqueness` — verify format BK-YYYYMMDD-XXXX
 
 **TourServiceTest**
 - `create_success` — tour được tạo và lưu
 - `create_duplicateTitle` — throw DuplicateTitleException
 - `getPublicById_inactive` — throw TourNotFoundException
 - `update_success` — fields được cập nhật
-
-**ReviewServiceTest**
-- `create_success` — review được tạo với PUBLISHED status
-- `delete_notOwner` — throw AccessDeniedException
-- `hideReview_admin` — status đổi sang HIDDEN
-
-**RatingServiceTest**
-- `rate_newRating` — rating được tạo mới
-- `rate_updateExisting` — rating cũ được cập nhật
-- `rate_invalidScore` — throw ValidationException
 
 ### 12.2 Integration Tests (MockMvc)
 
@@ -660,11 +629,6 @@ Tất cả chart APIs:
 - `GET /tours/{id}` active tour → 200 OK
 - `GET /tours/{id}` inactive tour → 404
 - `POST /tours/{id}/rate` khi chưa login → redirect to login
-
-**BookingControllerTest**
-- `GET /bookings` chưa login → redirect /auth/login
-- `POST /bookings` với tour hợp lệ → redirect to confirmation
-- `POST /bookings/{id}/cancel` → success, status = CANCELLED
 
 ### 12.3 Security Tests
 
@@ -756,8 +720,6 @@ logs/
 Mọi HTTP request đều được inject MDC (Mapped Diagnostic Context):
 - `requestId` — UUID được sinh tự động cho mỗi request
 - `userEmail` — email của user đang đăng nhập (nếu có)
-- `httpMethod` — GET, POST, PUT, DELETE
-- `requestPath` — /tours, /bookings, ...
 
 ### 14.4 Log Patterns
 

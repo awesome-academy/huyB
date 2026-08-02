@@ -9,6 +9,7 @@
 |------|----------|
 | [e2e-day-1-foundation.md](e2e-day-1-foundation.md) | T1.1 MySQL Migration · T1.2 Logback · T1.3 Swagger · T1.4 OAuth2 |
 | [e2e-day-2-messaging.md](e2e-day-2-messaging.md) | T2.1 ActiveMQ · T2.2 Notifications · T2.3–T2.5 JMS Pipeline · T2.6–T2.9 RabbitMQ |
+| [e2e-testing-guide-day3.md](e2e-testing-guide-day3.md) | T3.1–T3.4 WebSocket/STOMP · T3.5–T3.6 Scheduler · T3.7 @Async |
 
 ---
 
@@ -80,5 +81,23 @@ App sẵn sàng khi log xuất hiện: `Started BookingToursApplication in X.XXX
 | T2.9 | INACTIVE tour → không có rows mới | ☐ |
 | T2.9 | Log `New ACTIVE tour published` từ LogListener | ☐ |
 | T2.9 | RabbitMQ queues empty sau khi xử lý xong | ☐ |
+
+### Day 3
+
+| Task | Test | Status |
+|------|------|--------|
+| T3.1–T3.2 | Badge load đúng khi page load | ☐ |
+| T3.3–T3.4 | Toast + badge tăng realtime khi admin confirm booking | ☐ |
+| T3.3–T3.4 | Toast + badge tăng realtime khi admin cancel booking | ☐ |
+| T3.4 | `/profile/notifications` hiển thị danh sách đúng thứ tự | ☐ |
+| T3.4 | Mark all read → badge về 0, DB `is_read = 1` | ☐ |
+| T3.3 | WebSocket tự reconnect sau mất kết nối (~5s) | ☐ |
+| T3.1 | User chưa đăng nhập không trigger WebSocket connect | ☐ |
+| T3.5 | AutoCompleteBookingJob: CONFIRMED → COMPLETED sau khi job chạy | ☐ |
+| T3.5 | `scheduled_job_logs` ghi `SUCCESS` + `records_processed` đúng | ☐ |
+| T3.6 | PendingPaymentCleanupJob: PENDING stale → CANCELLED | ☐ |
+| T3.6 | `scheduled_job_logs` ghi `SUCCESS` + `records_processed` đúng | ☐ |
+| T3.5–T3.6 | Job fail → `FAILED` log trong DB và `error.log` | ☐ |
+| T3.7 | Notification save chạy trên thread `notif-async-X`, không block HTTP | ☐ |
 
 > ☑ = verified | ☐ = cần verify thủ công
