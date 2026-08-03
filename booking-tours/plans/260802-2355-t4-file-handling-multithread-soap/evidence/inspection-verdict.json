@@ -1,0 +1,89 @@
+{
+  "score": 8.5,
+  "criticalCount": 0,
+  "decision": "SEALED",
+  "acceptanceCovered": [
+    "T4.1: BookingExcelExporter generates styled .xlsx (header #BDD7EE, alternating rows) via Apache POI XSSFWorkbook — verified: BookingExcelExporter.java creates XSSFWorkbook; header row styled with XSSFCellStyle + XSSFColor(new byte[]{(byte)0xBD,(byte)0xD7,(byte)0xEE}); alternating row colors applied per-row.",
+    "T4.2: GET /admin/bookings/export streams .xlsx file with current filter params (keyword/status/fromDate/toDate) — verified: AdminBookingController.exportBookings() annotated @GetMapping(\"/export\"); all 4 filter params passed to ExcelExportService.exportBookings(); returns ResponseEntity with Content-Disposition: attachment.",
+    "T4.3: importExecutor ThreadPoolTaskExecutor bean (core=5, max=10, CallerRunsPolicy) declared in AsyncConfig — verified: AsyncConfig.importExecutor() bean present; setCorePoolSize(5), setMaxPoolSize(10), setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy()), thread prefix 'tour-import-'.",
+    "T4.4: TourExcelImporter reads all POI rows to String[][] on calling thread (thread-safety), then fans out to importExecutor via CompletableFuture.supplyAsync(); workers parse+validate only (no JPA) — verified: TourExcelImporter.parseRows() loop reads all cells to List<String[]> on calling thread before any future is created; each supplyAsync lambda receives only String[] and Map<String,Long>; no repository or entity access in workers.",
+    "T4.5: Flyway V9 migration creates tour_import_jobs table; TourImportJob entity + TourImportJobRepository wired — verified: V9__create_tour_import_jobs_table.sql creates table with ENUM status, INT counters, MEDIUMTEXT error_details; TourImportJob.java entity with @Builder; TourImportJobRepository.findAllByOrderByCreatedAtDesc(Pageable) present.",
+    "T4.6: POST /admin/tours/import processes .xlsx upload, records job, returns result; GET /admin/tours/import/template downloads blank template — verified: AdminTourController.processTourImport() @PostMapping(\"/import\") calls excelImportService.importTours(); downloadTemplate() @GetMapping(\"/import/template\") streams template; admin/tours/import.html form with upload + recent jobs table.",
+    "T4.7: currency.xsd defines CurrencyConversionRequest/Response; Spring WS SOAP endpoint at /soap/*; WSDL at /soap/currency.wsdl — verified: wsdl/currency.xsd defines both xs:element entries; WebServiceConfig registers MessageDispatcherServlet on /soap/*; DefaultWsdl11Definition bean named 'currency' auto-generates WSDL at /soap/currency.wsdl.",
+    "T4.8: TourController.tourDetail() calls SOAP client for USD+EUR prices; tours/detail.html shows '≈ X USD / ≈ Y EUR' below VND price — verified: TourController.tourDetail() calls currencyClient.convertCurrency(price,\"VND\",\"USD\") and currencyClient.convertCurrency(price,\"VND\",\"EUR\"); adds priceUsd/priceEur to model; tours/detail.html renders both with th:if null guard."
+  ],
+  "regressionChecked": [
+    "Existing SockJS WebSocket (/ws/**) unaffected — SOAP moved to /soap/* per C1 fix; SecurityConfig /ws/** rules unchanged",
+    "Existing BookingService.search() unchanged — ExcelExportServiceImpl uses it additively with Pageable.unpaged()",
+    "Existing notificationExecutor unchanged — importExecutor is a new independent bean in AsyncConfig",
+    "TourController existing rating flow unchanged — SOAP call is additive with null-safe fallback (null returned on exception)",
+    "SecurityConfig: /soap/** added alongside existing /ws/** — no existing permit rules removed or changed"
+  ],
+  "contractStatus": "PASSED",
+  "refuted": [],
+  "unproven": [],
+  "reachableRegressions": [],
+  "findings": [
+    {
+      "severity": "critical",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/config/WebServiceConfig.java:28",
+      "summary": "C1: SOAP MessageDispatcherServlet on /ws/* intercepted SockJS HTTP sub-requests breaking WebSocket. Fixed: moved SOAP servlet to /soap/*; updated WSDL locationUri, CurrencyConversionClient default URL, SecurityConfig /soap/** permit.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/controller/admin/AdminTourController.java:324",
+      "summary": "H1: importTours called with hardcoded null for createdBy — audit trail never populated. Fixed: inject UserRepository, look up User by authentication.getName() (email), pass user.getId().",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/ExcelImportServiceImpl.java:49",
+      "summary": "H2: MAX_ROWS IAE thrown inside @Transactional after job record saved as PROCESSING — Spring rolled back the record. Fixed: file bytes read first, row count probed in separate try-with-resources BEFORE job record is saved.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "medium",
+      "category": "performance",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/ExcelImportServiceImpl.java:102",
+      "summary": "M1: categoryRepository.findById() in per-row persist loop — N extra queries for 500-row file. Fixed: preload Map<Long, Category> from same findAll() call; replace findById with map lookup.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/ExcelImportServiceImpl.java:188",
+      "summary": "M2: escape() missing \\n, \\r, \\t — DB constraint messages with newlines produce invalid JSON in errorDetails. Fixed: added replace chains for \\n, \\r, \\t.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/excel/TourExcelImporter.java:208",
+      "summary": "L2: (long) cast on NUMERIC cells silently truncated decimal prices. Fixed: replaced with BigDecimal(doubleValue).stripTrailingZeros().toPlainString().",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "low",
+      "category": "reliability",
+      "location": "src/main/java/com/sunasterisk/bookingtours/service/impl/ExcelExportServiceImpl.java:31",
+      "summary": "L3: exportBookings uses Pageable.unpaged() with no row-count guard — heap risk at scale. Accepted as low-risk (admin-only endpoint). Deferred tech debt.",
+      "disposition": "Defer"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "location": "src/main/java/com/sunasterisk/bookingtours/entity/TourImportJob.java:55",
+      "summary": "L4: createdAt initialized via field default at construction time rather than @PrePersist. Difference is milliseconds in practice; accepted for this demo context.",
+      "disposition": "Accept"
+    }
+  ],
+  "riskGate": {
+    "touchesSensitiveArea": false,
+    "signoffRequired": false,
+    "humanSignedOff": true
+  }
+}

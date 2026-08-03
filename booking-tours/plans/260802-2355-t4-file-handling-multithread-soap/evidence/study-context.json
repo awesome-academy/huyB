@@ -1,0 +1,56 @@
+{
+  "task": "Day 4 (Thursday) — File Handling, Multithread & SOAP (T4.1–T4.8): Apache POI Excel export for bookings + multithreaded Excel import for tours (ThreadPoolTaskExecutor fan-out) + Spring WS SOAP currency conversion integrated into tour detail page",
+  "mode": "interactive",
+  "acceptanceCriteria": [
+    "T4.1: BookingExcelExporter generates styled .xlsx (header #BDD7EE, alternating rows) via Apache POI XSSFWorkbook",
+    "T4.2: GET /admin/bookings/export streams .xlsx file with current filter params (keyword/status/fromDate/toDate)",
+    "T4.3: importExecutor ThreadPoolTaskExecutor bean (core=5, max=10, CallerRunsPolicy) declared in AsyncConfig",
+    "T4.4: TourExcelImporter reads all POI rows to String[][] on calling thread (thread-safety), then fans out to importExecutor via CompletableFuture.supplyAsync(); workers parse+validate only (no JPA)",
+    "T4.5: Flyway V9 migration creates tour_import_jobs table; TourImportJob entity + TourImportJobRepository wired",
+    "T4.6: POST /admin/tours/import processes .xlsx upload, records job, returns result; GET /admin/tours/import/template downloads blank template",
+    "T4.7: currency.xsd defines CurrencyConversionRequest/Response; Spring WS SOAP endpoint at /soap/*; WSDL at /soap/currency.wsdl",
+    "T4.8: TourController.tourDetail() calls SOAP client for USD+EUR prices; tours/detail.html shows '≈ X USD / ≈ Y EUR' below VND price"
+  ],
+  "touchpoints": [
+    "pom.xml",
+    "src/main/java/com/sunasterisk/bookingtours/config/AsyncConfig.java",
+    "src/main/java/com/sunasterisk/bookingtours/config/WebServiceConfig.java",
+    "src/main/java/com/sunasterisk/bookingtours/config/SecurityConfig.java",
+    "src/main/resources/db/migration/V9__create_tour_import_jobs_table.sql",
+    "src/main/resources/wsdl/currency.xsd",
+    "src/main/resources/application.properties",
+    "src/main/java/com/sunasterisk/bookingtours/entity/TourImportJob.java",
+    "src/main/java/com/sunasterisk/bookingtours/repository/TourImportJobRepository.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/BookingExcelExporter.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/TourExcelImporter.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/ExcelExportService.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/impl/ExcelExportServiceImpl.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/ExcelImportService.java",
+    "src/main/java/com/sunasterisk/bookingtours/service/impl/ExcelImportServiceImpl.java",
+    "src/main/java/com/sunasterisk/bookingtours/soap/CurrencyConversionRequest.java",
+    "src/main/java/com/sunasterisk/bookingtours/soap/CurrencyConversionResponse.java",
+    "src/main/java/com/sunasterisk/bookingtours/soap/CurrencyRateProvider.java",
+    "src/main/java/com/sunasterisk/bookingtours/soap/CurrencyConversionEndpoint.java",
+    "src/main/java/com/sunasterisk/bookingtours/soap/CurrencyConversionClient.java",
+    "src/main/java/com/sunasterisk/bookingtours/controller/TourController.java",
+    "src/main/java/com/sunasterisk/bookingtours/controller/admin/AdminBookingController.java",
+    "src/main/java/com/sunasterisk/bookingtours/controller/admin/AdminTourController.java",
+    "src/main/resources/templates/tours/detail.html",
+    "src/main/resources/templates/admin/bookings/list.html",
+    "src/main/resources/templates/admin/tours/list.html",
+    "src/main/resources/templates/admin/tours/import.html"
+  ],
+  "blastRadius": [
+    "TourController.tourDetail(): additive SOAP call — returns null on failure, tour detail still renders",
+    "AdminBookingController: new export endpoint only — existing list/detail/confirm/cancel unchanged",
+    "AdminTourController: new import endpoints only — existing CRUD unchanged",
+    "AsyncConfig: new importExecutor bean — additive only, existing notificationExecutor unaffected",
+    "SecurityConfig: /soap/** added to CSRF ignore + permitAll — additive, no existing rules changed"
+  ],
+  "contracts": [
+    "SOAP: CurrencyConversionRequest (amount, fromCurrency, toCurrency) → CurrencyConversionResponse (convertedAmount, rate, fromCurrency, toCurrency) at /soap/currency",
+    "ExcelExportService: exportBookings(keyword, status, fromDate, toDate) → XSSFWorkbook",
+    "ExcelImportService: importTours(MultipartFile, Long createdBy) → TourImportJob; generateTemplate() → XSSFWorkbook",
+    "TourExcelImporter: parseRows(Sheet, Map<String,Long>) → List<ImportRowResult> (fan-out to importExecutor)"
+  ]
+}
