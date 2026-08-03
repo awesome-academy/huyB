@@ -84,7 +84,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler())
-                        .ignoringRequestMatchers("/ws/**")
+                        .ignoringRequestMatchers("/ws/**", "/soap/**")
                 )
 
                 // Tắt HTTP Basic Authentication mặc định
@@ -129,7 +129,8 @@ public class SecurityConfig {
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
                                 // WebSocket SockJS handshake — JWT cookie xác thực ở HTTP layer
-                                "/ws/**"
+                                "/ws/**",
+                                "/soap/**"
                         ).permitAll()
 
                         // Reviews: chỉ trang danh sách và trang chi tiết là công khai.

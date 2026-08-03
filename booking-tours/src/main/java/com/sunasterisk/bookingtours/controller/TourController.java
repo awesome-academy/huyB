@@ -5,6 +5,8 @@ import com.sunasterisk.bookingtours.entity.Tour;
 import com.sunasterisk.bookingtours.service.CategoryService;
 import com.sunasterisk.bookingtours.service.RatingService;
 import com.sunasterisk.bookingtours.service.TourService;
+import com.sunasterisk.bookingtours.soap.CurrencyConversionClient;
+import com.sunasterisk.bookingtours.soap.CurrencyConversionResponse;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +37,7 @@ public class TourController {
     private final TourService tourService;
     private final CategoryService categoryService;
     private final RatingService ratingService;
+    private final CurrencyConversionClient currencyClient;
 
     /**
      * GET /tours — Danh sách tour công khai: phân trang, lọc category, tìm kiếm theo tên/địa điểm.
@@ -86,6 +89,14 @@ public class TourController {
     public String tourDetail(@PathVariable Long id, Authentication authentication, Model model) {
         Tour tour = tourService.getPublicById(id);
         model.addAttribute("tour", tour);
+
+        // SOAP: quy đổi giá tour sang USD và EUR qua SOAP endpoint nội bộ
+        if (tour.getPrice() != null) {
+            CurrencyConversionResponse usd = currencyClient.convertCurrency(tour.getPrice(), "VND", "USD");
+            CurrencyConversionResponse eur = currencyClient.convertCurrency(tour.getPrice(), "VND", "EUR");
+            model.addAttribute("priceUsd", usd != null ? usd.getConvertedAmount() : null);
+            model.addAttribute("priceEur", eur != null ? eur.getConvertedAmount() : null);
+        }
 
         // 9.4: Lấy điểm rating hiện tại của user để hiển thị trạng thái sao đã chọn
         Short userRating = null;

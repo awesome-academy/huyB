@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://bookingtours.sunasterisk.com/currency"
+           xmlns:tns="http://bookingtours.sunasterisk.com/currency"
+           elementFormDefault="qualified">
+
+    <xs:element name="CurrencyConversionRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="amount"       type="xs:decimal"/>
+                <xs:element name="fromCurrency" type="xs:string"/>
+                <xs:element name="toCurrency"   type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="CurrencyConversionResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="convertedAmount" type="xs:decimal"/>
+                <xs:element name="rate"            type="xs:decimal"/>
+                <xs:element name="fromCurrency"    type="xs:string"/>
+                <xs:element name="toCurrency"      type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>
