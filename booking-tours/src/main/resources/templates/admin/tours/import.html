@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(pageTitle='Import Tours', content=~{::pageContent}, extraHead=~{}, extraScripts=~{})}">
+<body>
+<th:block th:fragment="pageContent">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">
+            <i class="bi bi-file-earmark-arrow-up me-2 text-success"></i>Import Tours from Excel
+        </h3>
+        <div class="d-flex gap-2">
+            <a th:href="@{/admin/tours/import/template}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-download me-1"></i>Download Template
+            </a>
+            <a th:href="@{/admin/tours}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Tours
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${successMessage}">Success</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${errorMessage}">Error</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Last job result detail -->
+    <div th:if="${importJob != null}" class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-bar-chart-fill me-2 text-primary"></i>Last Import Result — Job #<span th:text="${importJob.id}">0</span>
+        </div>
+        <div class="card-body">
+            <div class="row text-center g-3">
+                <div class="col-4">
+                    <div class="border rounded p-3">
+                        <div class="fs-3 fw-bold text-secondary" th:text="${importJob.totalRows}">0</div>
+                        <div class="small text-muted">Total Rows</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="border rounded p-3 border-success">
+                        <div class="fs-3 fw-bold text-success" th:text="${importJob.successRows}">0</div>
+                        <div class="small text-muted">Imported</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="border rounded p-3 border-danger">
+                        <div class="fs-3 fw-bold text-danger" th:text="${importJob.failedRows}">0</div>
+                        <div class="small text-muted">Failed</div>
+                    </div>
+                </div>
+            </div>
+            <div th:if="${importJob.errorDetails != null and importJob.errorDetails != '[]'}"
+                 class="mt-3">
+                <p class="fw-semibold small mb-1 text-danger">
+                    <i class="bi bi-exclamation-circle me-1"></i>Row errors:
+                </p>
+                <pre class="bg-light border rounded p-2 small"
+                     style="max-height:200px;overflow-y:auto;"
+                     th:text="${importJob.errorDetails}"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload form -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-upload me-2"></i>Upload Excel File
+        </div>
+        <div class="card-body">
+            <form th:action="@{/admin/tours/import}" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Select .xlsx file
+                        <span class="text-muted fw-normal small">(max 5 MB, max 500 rows)</span>
+                    </label>
+                    <input type="file" name="file" accept=".xlsx"
+                           class="form-control" required/>
+                </div>
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Download the <a th:href="@{/admin/tours/import/template}">template</a> first.
+                    All imported tours will have status <strong>INACTIVE</strong> — activate them manually.
+                    Required columns: <em>Title, Price, Duration Days, Max Participants, Departure Location, Destination, Departure Date (yyyy-MM-dd)</em>.
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-cloud-upload me-1"></i>Import Tours
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent import jobs -->
+    <div class="card border-0 shadow-sm" th:if="${not #lists.isEmpty(recentJobs)}">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-clock-history me-2"></i>Recent Import Jobs
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:60px">#</th>
+                        <th>File</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">OK</th>
+                        <th class="text-center">Failed</th>
+                        <th>Completed</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="job : ${recentJobs}">
+                        <td class="ps-3 text-muted small" th:text="${job.id}">1</td>
+                        <td class="small" th:text="${job.fileName}">file.xlsx</td>
+                        <td class="text-center">
+                            <span th:switch="${job.status.name()}">
+                                <span th:case="'COMPLETED'" class="badge bg-success">COMPLETED</span>
+                                <span th:case="'FAILED'"    class="badge bg-danger">FAILED</span>
+                                <span th:case="'PROCESSING'" class="badge bg-warning text-dark">PROCESSING</span>
+                                <span th:case="*"           class="badge bg-secondary" th:text="${job.status}">PENDING</span>
+                            </span>
+                        </td>
+                        <td class="text-center" th:text="${job.totalRows}">0</td>
+                        <td class="text-center text-success fw-semibold" th:text="${job.successRows}">0</td>
+                        <td class="text-center text-danger fw-semibold" th:text="${job.failedRows}">0</td>
+                        <td class="small text-muted"
+                            th:text="${job.completedAt != null ? #temporals.format(job.completedAt, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</th:block>
+</body>
+</html>
