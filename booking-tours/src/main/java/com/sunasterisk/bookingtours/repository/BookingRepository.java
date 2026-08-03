@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -133,4 +134,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                                            @Param("fromDate") LocalDate fromDate,
                                                            @Param("toDate") LocalDate toDate,
                                                            Pageable pageable);
+
+    /**
+     * Tìm tất cả booking CONFIRMED mà tour đã khởi hành trước ngày hôm nay.
+     * Dùng cho AutoCompleteBookingJob để chuyển trạng thái sang COMPLETED.
+     */
+    @Query("SELECT b FROM Booking b JOIN FETCH b.tour t " +
+            "WHERE b.status = :status AND t.departureDate < :today")
+    List<Booking> findConfirmedBookingsPastDeparture(@Param("status") BookingStatus status,
+                                                     @Param("today") LocalDate today);
+
+    /**
+     * Tìm tất cả booking PENDING được tạo trước thời điểm cutoff mà chưa có payment nào.
+     * Dùng cho PendingPaymentCleanupJob để tự động huỷ.
+     */
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.status = :status AND b.createdAt < :cutoff " +
+            "AND NOT EXISTS (SELECT p FROM Payment p WHERE p.booking.id = b.id)")
+    List<Booking> findStalePendingBookings(@Param("status") BookingStatus status,
+                                           @Param("cutoff") LocalDateTime cutoff);
 }

@@ -73,13 +73,18 @@ public class SecurityConfig {
                                                     SecurityContextRepository securityContextRepository) throws Exception {
         http
                 // Bật CSRF với CookieCsrfTokenRepository (token lưu trong XSRF-TOKEN cookie).
-                // XorCsrfTokenRequestAttributeHandler (default từ Spring Security 6+):
+                // XorCsrfTokenRequestAttributeHandler (Spring Security 6+):
                 //   - XOR-encode token cho mỗi form request → BREACH protection
-                //   - Đọc cookie trực tiếp khi validate, không phụ thuộc deferred subscription
-                //   - Thymeleaf th:action tự inject _csrf hidden field với giá trị XOR-encoded
+                //   - Thymeleaf th:action inject _csrf hidden field với giá trị XOR-encoded
+                //   - JS PHẢI đọc từ <meta name="_csrf"> (XOR-masked), KHÔNG dùng raw cookie
+                // ignoringRequestMatchers("/ws/**"):
+                //   - SockJS XHR transport dùng HTTP POST không mang CSRF header
+                //   - CSRF protection tại tầng STOMP được đảm bảo bởi XorCsrfChannelInterceptor
+                //   - Loại khỏi HTTP CSRF để transport hoạt động, STOMP-level CSRF vẫn còn
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers("/ws/**")
                 )
 
                 // Tắt HTTP Basic Authentication mặc định
@@ -122,7 +127,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                // WebSocket SockJS handshake — JWT cookie xác thực ở HTTP layer
+                                "/ws/**"
                         ).permitAll()
 
                         // Reviews: chỉ trang danh sách và trang chi tiết là công khai.
@@ -181,6 +188,8 @@ public class SecurityConfig {
                                         + "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                                         + "font-src 'self' https://cdn.jsdelivr.net; "
                                         + "img-src 'self' data: https:; "
+                                        // ws:/wss: cho SockJS WebSocket; cdn.jsdelivr.net cho SockJS XHR polling
+                                        + "connect-src 'self' ws: wss: https://cdn.jsdelivr.net; "
                                         + "form-action 'self'; "
                                         + "frame-ancestors 'none'; "
                                         + "base-uri 'self'"))

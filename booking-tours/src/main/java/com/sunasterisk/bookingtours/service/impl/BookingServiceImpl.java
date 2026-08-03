@@ -11,10 +11,10 @@ import com.sunasterisk.bookingtours.repository.TourRepository;
 import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.BookingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -244,6 +244,8 @@ public class BookingServiceImpl implements BookingService {
     private void sendBookingNotification(Booking booking, NotificationType type, String title) {
         String message = "Booking " + booking.getBookingCode()
                 + " cho tour \"" + booking.getTour().getTitle() + "\".";
+        // Publish Spring event → BookingNotificationDispatcher @TransactionalEventListener(AFTER_COMMIT)
+        // → BookingNotificationProducer → ActiveMQ → Consumer → NotificationService → WebSocket push
         eventPublisher.publishEvent(
                 BookingNotificationMessage.builder()
                         .userId(booking.getUser().getId())
