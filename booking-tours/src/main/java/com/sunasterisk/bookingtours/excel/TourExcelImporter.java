@@ -2,6 +2,7 @@ package com.sunasterisk.bookingtours.excel;
 
 import com.sunasterisk.bookingtours.excel.annotation.ExcelColumn;
 import com.sunasterisk.bookingtours.excel.dto.TourExcelRow;
+import com.sunasterisk.bookingtours.util.TextUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,7 +167,7 @@ public class TourExcelImporter {
         // Tra cứu category từ map đã nạp sẵn — không JPA
         Long categoryId = null;
         if (row.getCategoryName() != null && !row.getCategoryName().isBlank()) {
-            categoryId = categoryByName.get(row.getCategoryName().trim().toLowerCase());
+            categoryId = categoryByName.get(TextUtils.normalizeForLookup(row.getCategoryName()));
             if (categoryId == null) {
                 return ImportRowResult.error(rowNum,
                         "Category '" + row.getCategoryName() + "' not found");

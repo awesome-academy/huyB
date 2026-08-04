@@ -7,6 +7,7 @@ import com.sunasterisk.bookingtours.repository.CategoryRepository;
 import com.sunasterisk.bookingtours.repository.TourImportJobRepository;
 import com.sunasterisk.bookingtours.repository.TourRepository;
 import com.sunasterisk.bookingtours.service.ExcelImportService;
+import com.sunasterisk.bookingtours.util.TextUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -94,9 +95,10 @@ public class ExcelImportServiceImpl implements ExcelImportService {
 
             // Preload both name→id and id→entity maps (M1 fix: eliminates N+1 in persist loop)
             List<Category> allCategories = categoryRepository.findAll();
+            // Dùng normalizeForLookup để tra cứu không phân biệt dấu thanh tiếng Việt
             Map<String, Long> categoryByName = allCategories.stream()
                     .collect(Collectors.toMap(
-                            c -> c.getName().toLowerCase(),
+                            c -> TextUtils.normalizeForLookup(c.getName()),
                             Category::getId,
                             (a, b) -> a));
             Map<Long, Category> categoryById = allCategories.stream()
