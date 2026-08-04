@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import java.util.Map;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +90,24 @@ public class NotificationServiceImpl implements NotificationService {
     public void broadcastTourPromotion(Long tourId, String tourTitle) {
         String title   = "Tour mới: " + tourTitle;
         String message = "Tour \"" + tourTitle + "\" vừa được kích hoạt. Đặt ngay!";
+
+        // 1. Ghi DB cho tất cả user active (bulk INSERT, không cần load entity lên memory)
         notificationRepository.insertPromotionForAllActiveUsers(title, message);
+
+        // 2. Push real-time qua broadcast topic — một lần gửi, mọi client đang kết nối đều nhận.
+        //    Dùng /topic/ thay vì N lần convertAndSendToUser() vì đây là notification kiểu broadcast.
+        //    User không kết nối WebSocket sẽ thấy badge cập nhật ở lần load trang tiếp theo (từ DB).
+        try {
+            Map<String, Object> payload = Map.of(
+                    "type", "TOUR_PROMOTION",
+                    "title", title,
+                    "message", message
+            );
+            // Cast tường minh để tránh ambiguous overload giữa convertAndSend(dest, Object)
+            // và convertAndSend(Object, Map<String,Object>)
+            messagingTemplate.convertAndSend("/topic/promotions", (Object) payload);
+        } catch (Exception e) {
+            log.warn("WebSocket broadcast failed for tour promotion tourId={}: {}", tourId, e.getMessage());
+        }
     }
 }

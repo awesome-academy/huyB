@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -21,6 +23,8 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler.class);
+
     private final JwtUtils jwtUtils;
 
     @Override
@@ -28,7 +32,10 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                                         @NonNull HttpServletResponse response,
                                         @NonNull Authentication authentication) throws IOException {
         // 1. Tạo JWT và đặt vào HttpOnly cookie (SameSite=Strict)
-        jwtUtils.addJwtCookie(response, jwtUtils.generateToken(authentication));
+        String token = jwtUtils.generateToken(authentication);
+        // DEBUG only — token là credential, không được log ở INFO/prod
+        log.debug("JWT_TOKEN generated for [{}]: {}", authentication.getName(), token);
+        jwtUtils.addJwtCookie(response, token);
 
         // 2. Redirect theo role
         String redirectUrl = determineRedirectUrl(authentication);

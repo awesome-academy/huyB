@@ -19,6 +19,7 @@
             </form>
         </div>
 
+        <div id="notification-list">
         <div th:if="${notifications.isEmpty()}" class="text-center text-muted py-5">
             <i class="bi bi-bell-slash display-4 d-block mb-3"></i>
             <p>No notifications yet.</p>
@@ -69,6 +70,26 @@
                 </li>
             </ul>
         </nav>
+        </div><!-- /#notification-list -->
+
+        <script>
+            // Lắng nghe CustomEvent từ notification.js — chỉ active khi đang ở trang này.
+            // Khi nhận notification mới, fetch lại trang hiện tại và replace phần list,
+            // giữ nguyên URL (có thể đang ở trang phân trang bất kỳ).
+            window.addEventListener('notification:received', function () {
+                fetch(window.location.href, { credentials: 'same-origin' })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) {
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const newList = doc.getElementById('notification-list');
+                        const currentList = document.getElementById('notification-list');
+                        if (newList && currentList) {
+                            currentList.replaceWith(newList);
+                        }
+                    })
+                    .catch(function () {}); // silent fail — badge đã cập nhật, list refresh sau
+            });
+        </script>
     </div>
 </div>
 </th:block>

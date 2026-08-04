@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -39,6 +41,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     /**
      * Static resources không cần Authentication — bỏ qua để tránh
      * query DB vô ích cho mỗi file css/js/ảnh.
@@ -62,6 +66,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String token = extractTokenFromCookie(request);
+        // DEBUG only — token là credential, không được log ở INFO/prod
+        if (token != null) {
+            log.debug("JWT_TOKEN extracted from cookie [{}]: {}", request.getRequestURI(), token);
+        }
 
         // Guard: chỉ xử lý khi SecurityContext chưa có Authentication
         if (token != null
