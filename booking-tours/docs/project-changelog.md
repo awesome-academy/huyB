@@ -5,6 +5,25 @@ Format: `[vX.Y] YYYY-MM-DD — Description`
 
 ---
 
+## [v2.5] 2026-08-04 — Day 5 (T5): Reflection-based Excel Mapper
+
+### Added
+- `@ExcelColumn` annotation — maps DTO fields to column index + label; drives both export header generation and import row parsing
+- `ExcelMapper<T>` — generic `@Component`; `exportRow(T, Row, CellStyle)` writes a row via reflection; `importRow(String[], Class<T>)` constructs a DTO from a raw `String[]` via reflection; `COLUMN_COUNT` derived at runtime from annotation count
+- `ExcelValueCodec` — encode/decode helper: `String → typed field value` and `typed value → String` for all column types used by the DTOs
+- `BookingExcelRow` — export DTO; fields annotated with `@ExcelColumn`
+- `TourExcelRow` — import DTO; fields annotated with `@ExcelColumn`
+- `ExcelMapperTest` — 7 JUnit 5 unit tests covering round-trip encode/decode, null handling, and column count derivation
+
+### Changed
+- `BookingExcelExporter` — delegates all row/cell logic to `ExcelMapper`; reduced from 107 → 57 lines
+- `TourExcelImporter` — replaces manual index-based cell reads with `mapper.importRow()`; `COLUMN_COUNT` is now reflection-derived
+
+### No breaking changes
+No public service API changes, no new endpoints, no DB schema changes.
+
+---
+
 ## [v2.4] 2026-08-03 — Day 4: File Handling, Multithread & SOAP
 
 ### Added

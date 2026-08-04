@@ -22,7 +22,7 @@ public class TourImportJob {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "file_name", length = 255, nullable = false)
+    @Column(name = "file_name", nullable = false)
     private String fileName;
 
     @Enumerated(EnumType.STRING)

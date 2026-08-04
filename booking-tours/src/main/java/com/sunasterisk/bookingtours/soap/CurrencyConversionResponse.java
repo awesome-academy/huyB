@@ -1,9 +1,13 @@
 package com.sunasterisk.bookingtours.soap;
 
 import jakarta.xml.bind.annotation.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
+@Getter
+@NoArgsConstructor
 @XmlRootElement(name = "CurrencyConversionResponse",
         namespace = CurrencyConversionRequest.NAMESPACE)
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -21,8 +25,6 @@ public class CurrencyConversionResponse {
     @XmlElement(required = true)
     private String toCurrency;
 
-    public CurrencyConversionResponse() {}
-
     public CurrencyConversionResponse(BigDecimal convertedAmount, BigDecimal rate,
                                        String fromCurrency, String toCurrency) {
         this.convertedAmount = convertedAmount;
@@ -30,9 +32,4 @@ public class CurrencyConversionResponse {
         this.fromCurrency    = fromCurrency;
         this.toCurrency      = toCurrency;
     }
-
-    public BigDecimal getConvertedAmount() { return convertedAmount; }
-    public BigDecimal getRate()            { return rate; }
-    public String     getFromCurrency()    { return fromCurrency; }
-    public String     getToCurrency()      { return toCurrency; }
 }

@@ -1,6 +1,8 @@
 package com.sunasterisk.bookingtours.soap;
 
 import jakarta.xml.bind.annotation.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
@@ -8,6 +10,8 @@ import java.math.BigDecimal;
  * SOAP request DTO cho operation quy đổi tiền tệ.
  * Viết tay thay vì generate từ XSD để tránh phụ thuộc plugin JAXB.
  */
+@Getter
+@NoArgsConstructor
 @XmlRootElement(name = "CurrencyConversionRequest",
         namespace = CurrencyConversionRequest.NAMESPACE)
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -24,15 +28,9 @@ public class CurrencyConversionRequest {
     @XmlElement(required = true)
     private String toCurrency;
 
-    public CurrencyConversionRequest() {}
-
     public CurrencyConversionRequest(BigDecimal amount, String fromCurrency, String toCurrency) {
         this.amount = amount;
         this.fromCurrency = fromCurrency;
         this.toCurrency = toCurrency;
     }
-
-    public BigDecimal getAmount()       { return amount; }
-    public String    getFromCurrency()  { return fromCurrency; }
-    public String    getToCurrency()    { return toCurrency; }
 }

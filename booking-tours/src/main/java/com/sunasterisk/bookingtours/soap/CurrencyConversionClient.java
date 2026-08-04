@@ -23,7 +23,9 @@ public class CurrencyConversionClient extends WebServiceGatewaySupport {
 
     @Autowired
     public void configureMarshaller(Jaxb2Marshaller currencyMarshaller) {
+        // Dùng JAXB marshaller để serialize Java object → XML khi gửi request
         getWebServiceTemplate().setMarshaller(currencyMarshaller);
+        // Dùng JAXB marshaller để deserialize XML → Java object khi nhận response
         getWebServiceTemplate().setUnmarshaller(currencyMarshaller);
     }
 

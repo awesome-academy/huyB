@@ -1,0 +1,11 @@
+{
+  "commands": [
+    {
+      "command": "./mvnw test",
+      "exitCode": 0,
+      "status": "pass",
+      "summary": "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS (7 ExcelMapperTest + 1 BookingToursApplicationTests context load; all T5 acceptance criteria exercised)",
+      "ts": "2026-08-04T10:40:00.000Z"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 **Project:** SUN Booking Tours  
 **Stack:** Spring Boot 4.0.6 · Java 21 · Spring Security 6 · JWT · OAuth2 · Thymeleaf · MySQL  
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-04
 
 ---
 
@@ -80,6 +80,7 @@ Advanced sprint extending the v1 platform with 12 enterprise-grade features over
 
 | Task | Description | Status |
 |------|-------------|--------|
+| T5 | Reflection-based Excel mapper (`@ExcelColumn`, `ExcelMapper`, `ExcelValueCodec`, DTOs, 7 unit tests) | Done |
 | T5.1 | Chart data APIs (`/admin/charts/revenue`, `/admin/charts/top-tours`) | Pending |
 | T5.2 | Admin dashboard Chart.js bar charts | Pending |
 | T5.3 | `BookingServiceTest` (6 Mockito unit tests) | Pending |
@@ -101,10 +102,11 @@ Advanced sprint extending the v1 platform with 12 enterprise-grade features over
 | 5 | Multithreaded Excel import | Day 4 | Done |
 | 6 | Apache POI Excel export | Day 4 | Done |
 | 7 | SOAP currency conversion | Day 4 | Done |
-| 8 | Chart.js analytics dashboard | Day 5 | Pending |
-| 9 | JUnit5 + Mockito + MockMvc tests | Day 5 | Pending |
-| 10 | Swagger / OpenAPI 3.0 | Day 1 | Done |
-| 11 | SLF4J + Logback structured logging | Day 1 | Done |
+| 8 | Reflection-based Excel mapper (annotation-driven) | Day 5 | Done |
+| 9 | Chart.js analytics dashboard | Day 5 | Pending |
+| 10 | JUnit5 + Mockito + MockMvc tests | Day 5 | Pending |
+| 11 | Swagger / OpenAPI 3.0 | Day 1 | Done |
+| 12 | SLF4J + Logback structured logging | Day 1 | Done |
 
 ---
 

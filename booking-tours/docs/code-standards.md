@@ -1,7 +1,7 @@
 # Code Standards — SUN Booking Tours
 
 **Stack:** Spring Boot 4.0.6 · Java 21 · MySQL 8 · Thymeleaf  
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-04
 
 ---
 
@@ -74,8 +74,10 @@ com.sunasterisk.bookingtours/
 ## Excel Standards (Apache POI)
 
 - Use `XSSFWorkbook` for standard files; switch to `SXSSFWorkbook` (streaming) only when row count > 5 000
-- Export: `BookingExcelExporter` owns all cell/style creation; service layer provides only the data list
-- Import: `TourExcelImporter` reads rows into `String[][]` on the calling thread before any parallel work; each row processed independently via `CompletableFuture.supplyAsync(..., importExecutor)`
+- Column mapping: annotate DTO fields with `@ExcelColumn(index, label)`; `ExcelMapper` reads these at runtime via reflection — no manual index magic in exporter/importer code
+- Export: define a DTO annotated with `@ExcelColumn`; pass it to `ExcelMapper.exportRow()`; `BookingExcelExporter` owns header/style creation and delegates row writes to the mapper
+- Import: define a DTO annotated with `@ExcelColumn`; `TourExcelImporter` reads rows into `String[][]` on the calling thread, then fans each row to `importExecutor` via `CompletableFuture.supplyAsync(row → mapper.importRow(row, Dto.class))`; `COLUMN_COUNT` is derived from the annotation count, not a hardcoded constant
+- `ExcelValueCodec` handles all `String ↔ typed field` conversions; add new type support there, not in mapper or importer code
 - Validate each row independently — do not stop on first error; collect all errors and return in summary
 - Accepted file types for import: `.xlsx` only; max 5 MB; max 500 data rows
 

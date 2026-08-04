@@ -1,8 +1,8 @@
 # System Architecture — SUN Booking Tours
 
-**Version:** 2.4 (post Day 4)  
+**Version:** 2.5 (post T5)  
 **Stack:** Spring Boot 4.0.6 · Java 21 · MySQL 8 · Thymeleaf · Bootstrap 5  
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-04
 
 ---
 
@@ -54,8 +54,15 @@ com.sunasterisk.bookingtours/
 │   ├── ScheduledJobLog.java
 │   └── TourImportJob.java
 ├── excel/                # Apache POI layer
-│   ├── BookingExcelExporter.java
-│   └── TourExcelImporter.java
+│   ├── annotation/
+│   │   └── ExcelColumn.java          # Maps DTO fields → column index + label
+│   ├── dto/
+│   │   ├── BookingExcelRow.java      # Export DTO
+│   │   └── TourExcelRow.java         # Import DTO
+│   ├── ExcelMapper.java              # Generic reflection mapper (@Component)
+│   ├── ExcelValueCodec.java          # Encode/decode String ↔ typed field value
+│   ├── BookingExcelExporter.java     # Delegates row/cell logic to ExcelMapper
+│   └── TourExcelImporter.java        # Uses mapper.importRow(); COLUMN_COUNT reflection-derived
 ├── messaging/
 │   ├── activemq/
 │   │   ├── BookingNotificationMessage.java
@@ -107,6 +114,8 @@ AdminBookingController
   └── ExcelExportService.exportBookings(filters)
         └── BookingService.search(filters, Pageable.unpaged())
               └── BookingExcelExporter.generate(bookings)  → XSSFWorkbook
+                    └── ExcelMapper.exportRow(BookingExcelRow, Row, CellStyle)
+                          └── @ExcelColumn reflection → cell writes
                     → HttpServletResponse output stream
 ```
 
@@ -117,7 +126,7 @@ AdminTourController (POST /admin/tours/import)
         ├── Creates TourImportJob (PENDING → PROCESSING)
         ├── TourExcelImporter.parse(file)
         │     ├── POI reads rows → String[][] on calling thread
-        │     └── CompletableFuture.supplyAsync(row → validate+parse, importExecutor)
+        │     └── CompletableFuture.supplyAsync(row → ExcelMapper.importRow(String[], TourExcelRow.class), importExecutor)
         │           × N rows in parallel
         └── Aggregates results → persist valid rows → update job (COMPLETED/FAILED)
 ```
