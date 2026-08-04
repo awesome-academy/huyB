@@ -1,0 +1,34 @@
+{
+  "task": "Day 5 — Reflection-based Excel Mapper (T5.1–T5.6): @ExcelColumn annotation + generic ExcelMapper<T> using Java Reflection; BookingExcelRow + TourExcelRow DTOs; refactored BookingExcelExporter and TourExcelImporter; ExcelMapperTest unit tests",
+  "mode": "interactive",
+  "acceptanceCriteria": [
+    "T5.1: @ExcelColumn(header, order, required, dateFormat) annotation defined in excel.annotation package",
+    "T5.2: ExcelMapper.export(List<T>, Class<T>, String sheetName) — Reflection-based export; header #BDD7EE bold; alternating rows; autosize",
+    "T5.3: ExcelMapper.importRow(String[], Class<T>) — no-arg constructor + field.set; required check; parse errors as IAE; worker-safe (no POI contact)",
+    "T5.4: BookingExcelRow (8 @ExcelColumn fields); BookingExcelExporter delegates entirely to ExcelMapper",
+    "T5.5: TourExcelRow (9 @ExcelColumn fields); TourExcelImporter.parseRow() uses ExcelMapper.importRow(); domain validation preserved; threading structure intact",
+    "T5.6: ExcelMapperTest — 7 unit tests: export headers, export value format, export→import round-trip, import valid rows, import required missing, import bad date, import bad number; no Spring context"
+  ],
+  "touchpoints": [
+    "src/main/java/com/sunasterisk/bookingtours/excel/annotation/ExcelColumn.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/ExcelMapper.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/ExcelValueCodec.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/dto/BookingExcelRow.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/dto/TourExcelRow.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/BookingExcelExporter.java",
+    "src/main/java/com/sunasterisk/bookingtours/excel/TourExcelImporter.java",
+    "src/test/java/com/sunasterisk/bookingtours/excel/ExcelMapperTest.java"
+  ],
+  "blastRadius": [
+    "BookingExcelExporter: full replacement of manual cell logic with ExcelMapper.export() — output identical",
+    "TourExcelImporter: parseRow() now calls mapper.importRow() + domain rules; threading/ImportRowResult contract unchanged",
+    "ExcelExportService / ExcelImportService: public APIs completely unchanged",
+    "No new endpoints, no DB changes, no migration, no config changes"
+  ],
+  "contracts": [
+    "ExcelMapper.export(List<T>, Class<T>, String sheetName) → XSSFWorkbook",
+    "ExcelMapper.importRow(String[], Class<T>) → T (throws IAE with column header on required/parse failure)",
+    "ExcelMapper.importSheet(Sheet, Class<T>) → List<ImportResult<T>>",
+    "ExcelColumn: header(), order(), required(), dateFormat() attributes"
+  ]
+}

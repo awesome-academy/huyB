@@ -37,7 +37,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query(value = """
             INSERT INTO notifications (user_id, type, title, message, is_read, created_at, updated_at)
-            SELECT u.id, 'TOUR_PROMOTION', :title, :message, 0, NOW(6), NOW(6)
+            SELECT u.id, 'TOUR_PROMOTION', :title, :message, 0, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)
             FROM users u WHERE u.is_active = 1
             """, nativeQuery = true)
     void insertPromotionForAllActiveUsers(@Param("title") String title, @Param("message") String message);

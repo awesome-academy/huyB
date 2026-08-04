@@ -86,10 +86,20 @@
         stompClient.debug = null; // tắt log STOMP trong console
 
         stompClient.connect(headers, function () {
+            // Per-user: booking confirm/cancel, payment, ...
             stompClient.subscribe('/user/queue/notifications', function (frame) {
                 const notification = JSON.parse(frame.body);
                 updateBadge(badgeCount + 1);
                 showToast(notification);
+                window.dispatchEvent(new CustomEvent('notification:received', { detail: notification }));
+            });
+
+            // Broadcast: tour promotion — một message từ server, tất cả client nhận
+            stompClient.subscribe('/topic/promotions', function (frame) {
+                const notification = JSON.parse(frame.body);
+                updateBadge(badgeCount + 1);
+                showToast(notification);
+                window.dispatchEvent(new CustomEvent('notification:received', { detail: notification }));
             });
         }, function (error) {
             // reconnect sau 5s nếu mất kết nối

@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Cấu hình thread pool cho xử lý bất đồng bộ.
@@ -28,6 +29,24 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("notif-async-"); // xuất hiện trong log để trace dễ
         executor.setWaitForTasksToCompleteOnShutdown(true); // chờ các task đang chạy hoàn thành trước khi đóng thread pool
         executor.setAwaitTerminationSeconds(10);            // sau 10 giây, dù còn task chưa xong, executor vẫn force-shutdown
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Thread pool riêng cho xử lý từng dòng Excel import song song.
+     * CallerRunsPolicy: nếu queue đầy, calling thread tự xử lý thay vì reject.
+     */
+    @Bean(name = "importExecutor")
+    public Executor importExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("tour-import-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
     }

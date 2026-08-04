@@ -9,7 +9,8 @@
 |------|----------|
 | [e2e-day-1-foundation.md](e2e-day-1-foundation.md) | T1.1 MySQL Migration · T1.2 Logback · T1.3 Swagger · T1.4 OAuth2 |
 | [e2e-day-2-messaging.md](e2e-day-2-messaging.md) | T2.1 ActiveMQ · T2.2 Notifications · T2.3–T2.5 JMS Pipeline · T2.6–T2.9 RabbitMQ |
-| [e2e-testing-guide-day3.md](e2e-testing-guide-day3.md) | T3.1–T3.4 WebSocket/STOMP · T3.5–T3.6 Scheduler · T3.7 @Async |
+| [e2e-day-3-websocket-scheduler.md](e2e-day-3-websocket-scheduler.md) | T3.1–T3.4 WebSocket/STOMP · T3.5–T3.6 Scheduler · T3.7 @Async |
+| [e2e-day-4-excel-soap.md](e2e-day-4-excel-soap.md) | T4.1 Excel Export · T4.2 Excel Import (multithreaded + job tracking) · T4.3 SOAP Currency |
 
 ---
 
@@ -99,5 +100,29 @@ App sẵn sàng khi log xuất hiện: `Started BookingToursApplication in X.XXX
 | T3.6 | `scheduled_job_logs` ghi `SUCCESS` + `records_processed` đúng | ☐ |
 | T3.5–T3.6 | Job fail → `FAILED` log trong DB và `error.log` | ☐ |
 | T3.7 | Notification save chạy trên thread `notif-async-X`, không block HTTP | ☐ |
+
+### Day 4
+
+| Task | Test | Status |
+|------|------|--------|
+| T4.1 | Export tất cả booking → file .xlsx hợp lệ, 8 cột đúng | ☐ |
+| T4.1 | Export filter status → chỉ booking khớp | ☐ |
+| T4.1 | Export filter keyword + ngày → chỉ booking khớp | ☐ |
+| T4.1 | Export không có kết quả → file chỉ có header | ☐ |
+| T4.1 | Format date `dd/MM/yyyy`, số không có `.0` thừa | ☐ |
+| T4.2 | Download template → 9 cột đúng | ☐ |
+| T4.2 | Import 3 dòng hợp lệ → `success=3`, `failed=0` | ☐ |
+| T4.2 | Import có lỗi → `success=1`, `failed=2`, error JSON đúng | ☐ |
+| T4.2 | Import title trùng → fail với thông báo `already exists` | ☐ |
+| T4.2 | Upload không phải .xlsx → lỗi validation | ☐ |
+| T4.2 | Upload file > 5MB → lỗi validation | ☐ |
+| T4.2 | 100 dòng → log nhiều `import-worker-X` song song | ☐ |
+| T4.2 | Trang import hiển thị 20 job gần nhất | ☐ |
+| T4.3 | `GET /soap/currency.wsdl` → WSDL XML hợp lệ | ☐ |
+| T4.3 | Trang chi tiết tour ACTIVE hiển thị giá USD + EUR | ☐ |
+| T4.3 | Tỉ giá đúng: VND/25000 = USD, VND/27000 = EUR | ☐ |
+| T4.3 | SOAP curl trực tiếp → response XML đúng | ☐ |
+| T4.3 | Currency không hỗ trợ → SOAP Fault, trang không crash | ☐ |
+| T4.3 | Tour price = null → không gọi SOAP, trang không crash | ☐ |
 
 > ☑ = verified | ☐ = cần verify thủ công

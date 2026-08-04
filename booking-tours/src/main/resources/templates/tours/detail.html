@@ -164,6 +164,15 @@
                     <span class="fw-bold text-primary" style="font-size:2rem;">
                         <span th:text="${#numbers.formatDecimal(tour.price, 1, 'COMMA', 0, 'POINT')}">0</span> ₫
                     </span>
+                    <!-- SOAP: giá quy đổi sang USD và EUR -->
+                    <div class="d-flex gap-3 mt-1" th:if="${priceUsd != null or priceEur != null}">
+                        <span class="text-muted small" th:if="${priceUsd != null}">
+                            ≈ <strong th:text="${#numbers.formatDecimal(priceUsd, 1, 'COMMA', 2, 'POINT')}">0.00</strong> USD
+                        </span>
+                        <span class="text-muted small" th:if="${priceEur != null}">
+                            ≈ <strong th:text="${#numbers.formatDecimal(priceEur, 1, 'COMMA', 2, 'POINT')}">0.00</strong> EUR
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Authenticated users: Book Now -->

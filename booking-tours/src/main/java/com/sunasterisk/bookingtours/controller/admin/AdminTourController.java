@@ -2,8 +2,13 @@ package com.sunasterisk.bookingtours.controller.admin;
 
 import com.sunasterisk.bookingtours.dto.TourRequest;
 import com.sunasterisk.bookingtours.entity.Tour;
+import com.sunasterisk.bookingtours.entity.TourImportJob;
 import com.sunasterisk.bookingtours.entity.TourStatus;
+import com.sunasterisk.bookingtours.entity.User;
+import com.sunasterisk.bookingtours.repository.TourImportJobRepository;
+import com.sunasterisk.bookingtours.repository.UserRepository;
 import com.sunasterisk.bookingtours.service.CategoryService;
+import com.sunasterisk.bookingtours.service.ExcelImportService;
 import com.sunasterisk.bookingtours.service.TourService;
 import com.sunasterisk.bookingtours.util.FileStorageService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
@@ -12,15 +17,26 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Controller quản lý tour phía Admin.
@@ -40,6 +56,9 @@ public class AdminTourController {
     private final TourService tourService;
     private final CategoryService categoryService;
     private final FileStorageService fileStorageService;
+    private final ExcelImportService excelImportService;
+    private final TourImportJobRepository tourImportJobRepository;
+    private final UserRepository userRepository;
 
     // ----------------------------------------------------------------
     // Helper: đưa dữ liệu dùng chung cho form (categories, statuses) vào model
@@ -252,6 +271,69 @@ public class AdminTourController {
         }
 
         return "redirect:/admin/tours";
+    }
+
+    // ----------------------------------------------------------------
+    // IMPORT (Excel)
+    // ----------------------------------------------------------------
+
+    /**
+     * GET /admin/tours/import — Hiển thị form import và 20 job gần nhất.
+     */
+    @Operation(summary = "Form import tours", description = "Upload .xlsx để import nhiều tour cùng lúc")
+    @GetMapping("/import")
+    public String showImportForm(Model model) {
+        List<TourImportJob> recentJobs = tourImportJobRepository
+                .findAllByOrderByCreatedAtDesc(PageRequest.of(0, 20));
+        model.addAttribute("recentJobs", recentJobs);
+        return "admin/tours/import";
+    }
+
+    /**
+     * GET /admin/tours/import/template — Tải file template .xlsx.
+     */
+    @Operation(summary = "Download import template", description = "Tải file mẫu .xlsx cho import tour")
+    @GetMapping("/import/template")
+    public ResponseEntity<Resource> downloadTemplate() throws IOException {
+        XSSFWorkbook workbook = excelImportService.generateTemplate();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        workbook.write(out);
+        workbook.close();
+
+        byte[] bytes = out.toByteArray();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"tour_import_template.xlsx\"")
+                .contentLength(bytes.length)
+                .body(new ByteArrayResource(bytes));
+    }
+
+    /**
+     * POST /admin/tours/import — Xử lý file upload và chạy import job.
+     */
+    @Operation(summary = "Xử lý import tours", description = "Import danh sách tour từ file .xlsx")
+    @PostMapping("/import")
+    public String processTourImport(
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            Long userId = (authentication != null)
+                    ? userRepository.findByEmail(authentication.getName())
+                            .map(User::getId).orElse(null)
+                    : null;
+            TourImportJob job = excelImportService.importTours(file, userId);
+            redirectAttributes.addFlashAttribute("importJob", job);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Import completed: " + job.getSuccessRows() + " success, "
+                            + job.getFailedRows() + " failed.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/admin/tours/import";
     }
 
     // ----------------------------------------------------------------

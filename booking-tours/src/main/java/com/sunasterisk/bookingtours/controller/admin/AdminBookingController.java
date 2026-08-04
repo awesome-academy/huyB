@@ -4,20 +4,29 @@ import com.sunasterisk.bookingtours.entity.Booking;
 import com.sunasterisk.bookingtours.entity.BookingStatus;
 import com.sunasterisk.bookingtours.entity.Payment;
 import com.sunasterisk.bookingtours.service.BookingService;
+import com.sunasterisk.bookingtours.service.ExcelExportService;
 import com.sunasterisk.bookingtours.service.PaymentService;
 import com.sunasterisk.bookingtours.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 
 /**
@@ -36,6 +45,7 @@ public class AdminBookingController {
 
     private final BookingService bookingService;
     private final PaymentService paymentService;
+    private final ExcelExportService excelExportService;
 
     /**
      * GET /admin/bookings - Danh sách booking có phân trang, filter status, từ khoá, ngày
@@ -102,6 +112,35 @@ public class AdminBookingController {
                     "Cannot confirm booking: " + e.getMessage());
         }
         return "redirect:/admin/bookings";
+    }
+
+    /**
+     * GET /admin/bookings/export — Xuất toàn bộ booking (với filter hiện tại) ra file Excel.
+     */
+    @Operation(summary = "Export bookings (Admin)", description = "Xuất danh sách booking ra .xlsx với filter tương tự list page")
+    @GetMapping("/export")
+    public ResponseEntity<Resource> exportBookings(
+            @RequestParam(value = "keyword", defaultValue = "") String keyword,
+            @RequestParam(value = "status", required = false) BookingStatus status,
+            @RequestParam(value = "fromDate", required = false) LocalDate fromDate,
+            @RequestParam(value = "toDate", required = false) LocalDate toDate) throws IOException {
+
+        XSSFWorkbook workbook = excelExportService.exportBookings(
+                keyword.isBlank() ? null : keyword, status, fromDate, toDate);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        workbook.write(out);
+        workbook.close();
+
+        byte[] bytes = out.toByteArray();
+        String filename = "bookings_" + LocalDate.now() + ".xlsx";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentLength(bytes.length)
+                .body(new ByteArrayResource(bytes));
     }
 
     /**

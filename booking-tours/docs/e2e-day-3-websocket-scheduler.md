@@ -1,7 +1,17 @@
-# E2E Testing Guide — Day 3: WebSocket + Scheduler
+# E2E Testing — Day 3: WebSocket + Scheduler
 
-> **Scope:** T3.1–T3.7 — Real-time notifications (WebSocket/STOMP) và scheduled jobs  
-> **Prerequisite:** App đang chạy tại `http://localhost:8080`, MySQL + ActiveMQ đang chạy
+> Quay lại: [E2E Testing Guide](e2e-testing-guide.md)
+
+## Prerequisites
+
+```bash
+# MySQL + ActiveMQ đang chạy, app đã qua Day 2
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+App sẵn sàng khi log xuất hiện: `Apache ActiveMQ X.X.X (localhost, ...) started` và `Started BookingToursApplication in X.XXX seconds`
+
+> **Scope:** T3.1–T3.7 — Real-time notifications (WebSocket/STOMP) và scheduled jobs
 
 ---
 

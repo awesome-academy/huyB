@@ -1,0 +1,46 @@
+{
+  "score": 9.7,
+  "criticalCount": 0,
+  "decision": "SEALED",
+  "acceptanceCovered": [
+    "T5.1: @ExcelColumn(header, order, required, dateFormat) annotation defined in excel.annotation package",
+    "T5.2: ExcelMapper.export(List<T>, Class<T>, String sheetName) — Reflection-based export; header #BDD7EE bold; alternating rows; autosize",
+    "T5.3: ExcelMapper.importRow(String[], Class<T>) — no-arg constructor + field.set; required check; parse errors as IAE; worker-safe (no POI contact)",
+    "T5.4: BookingExcelRow (8 @ExcelColumn fields); BookingExcelExporter delegates entirely to ExcelMapper",
+    "T5.5: TourExcelRow (9 @ExcelColumn fields); TourExcelImporter.parseRow() uses ExcelMapper.importRow(); domain validation preserved; threading structure intact",
+    "T5.6: ExcelMapperTest — 7 unit tests: export headers, export value format, export→import round-trip, import valid rows, import required missing, import bad date, import bad number; no Spring context"
+  ],
+  "regressionChecked": [
+    "BookingExcelExporter: public export(List<Booking>) API unchanged; XSSFWorkbook output byte-equivalent to Day-4 baseline",
+    "TourExcelImporter: public parseRows(Sheet, Map) API unchanged; ImportRowResult record contract preserved; CompletableFuture threading structure intact",
+    "ExcelExportService / ExcelImportService: public APIs completely unchanged — no callers modified",
+    "BookingToursApplicationTests: Spring context loads successfully with new @Component ExcelMapper"
+  ],
+  "contractStatus": "VERIFIED",
+  "refuted": [],
+  "unproven": [],
+  "reachableRegressions": [],
+  "findings": [
+    {
+      "severity": "high",
+      "category": "error-messaging",
+      "location": "src/main/java/com/sunasterisk/bookingtours/excel/ExcelMapper.java:105-110",
+      "summary": "H1 (FIXED): importRow parse errors had no column-header context; user saw 'Invalid value: abc' with no indication which field failed. Fixed: wrapped ExcelValueCodec.parse() in try/catch, rethrown as IAE with ann.header() prefix.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "medium",
+      "category": "maintainability",
+      "location": "src/main/java/com/sunasterisk/bookingtours/excel/TourExcelImporter.java:30-32",
+      "summary": "M2 (FIXED): COLUMN_COUNT = 9 was a magic number; silent column loss if TourExcelRow gains a field. Fixed: replaced with Arrays.stream().filter(@ExcelColumn).count() — self-syncs with the DTO.",
+      "disposition": "Accept"
+    },
+    {
+      "severity": "low",
+      "category": "test-coverage",
+      "location": "src/test/java/com/sunasterisk/bookingtours/excel/ExcelMapperTest.java:194-211",
+      "summary": "L1 (FIXED): Tests 6+7 asserted only error().isNotBlank() — too weak after H1 added column header. Fixed: strengthened to containsIgnoringCase('Departure Date') and containsIgnoringCase('Price').",
+      "disposition": "Accept"
+    }
+  ]
+}
